@@ -1,0 +1,90 @@
+-- Database Schema for Community Organization Management System (Supabase PostgreSQL)
+
+-- 1. Organizations Table
+CREATE TABLE IF NOT EXISTS organizations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    slug TEXT NOT NULL UNIQUE,
+    logo_url TEXT,
+    description TEXT,
+    theme_color TEXT DEFAULT '#0F5132',
+    status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 2. Profiles Table (Extends Supabase auth.users)
+CREATE TABLE IF NOT EXISTS profiles (
+    id UUID PRIMARY KEY, -- Should reference auth.users.id
+    email TEXT NOT NULL UNIQUE,
+    full_name TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'executive' CHECK (role IN ('super_admin', 'org_admin', 'office_bearer', 'executive')),
+    org_id UUID REFERENCES organizations(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexing for profile lookups by organization
+CREATE INDEX IF NOT EXISTS idx_profiles_org_id ON profiles(org_id);
+CREATE INDEX IF NOT EXISTS idx_profiles_role ON profiles(role);
+
+-- 3. Members Table
+CREATE TABLE IF NOT EXISTS members (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    member_id TEXT NOT NULL UNIQUE,
+    full_name TEXT NOT NULL,
+    photo_url TEXT,
+    mobile_number TEXT NOT NULL,
+    whatsapp_number TEXT,
+    address TEXT,
+    ward_unit TEXT,
+    age_category TEXT NOT NULL CHECK (age_category IN ('child', 'youth', 'middle', 'senior')),
+    occupation TEXT,
+    blood_group TEXT,
+    org_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+    location_status TEXT DEFAULT 'local' CHECK (location_status IN ('local', 'expatriate', 'studying_outside', 'working_outside')),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexing for member filtering & search
+CREATE INDEX IF NOT EXISTS idx_members_org_id ON members(org_id);
+CREATE INDEX IF NOT EXISTS idx_members_status ON members(status);
+CREATE INDEX IF NOT EXISTS idx_members_location ON members(location_status);
+CREATE INDEX IF NOT EXISTS idx_members_ward ON members(ward_unit);
+
+-- 4. Programs Table
+CREATE TABLE IF NOT EXISTS programs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    description TEXT,
+    date DATE NOT NULL,
+    org_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    status TEXT DEFAULT 'upcoming' CHECK (status IN ('upcoming', 'active', 'completed')),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_programs_org_id ON programs(org_id);
+CREATE INDEX IF NOT EXISTS idx_programs_status ON programs(status);
+
+-- 5. Call Assignments Table (Random assignment campaigns)
+CREATE TABLE IF NOT EXISTS call_assignments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    program_id UUID REFERENCES programs(id) ON DELETE CASCADE,
+    member_id UUID REFERENCES members(id) ON DELETE CASCADE,
+    caller_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    status TEXT DEFAULT 'not_called' CHECK (status IN ('not_called', 'called', 'confirmed', 'not_attending', 'no_response', 'call_back_later')),
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(program_id, member_id) -- A member cannot be assigned twice in the same program campaign
+);
+
+CREATE INDEX IF NOT EXISTS idx_assignments_program ON call_assignments(program_id);
+CREATE INDEX IF NOT EXISTS idx_assignments_caller ON call_assignments(caller_id);
+CREATE INDEX IF NOT EXISTS idx_assignments_status ON call_assignments(status);
+
+-- Enable Row Level Security (RLS) on all tables (if deploying on Supabase)
+ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE programs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE call_assignments ENABLE ROW LEVEL SECURITY;

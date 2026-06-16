@@ -53,6 +53,49 @@ export default function MemberManagement() {
   const [googleSheetUrl, setGoogleSheetUrl] = useState('');
   const [isFetchingSheet, setIsFetchingSheet] = useState(false);
 
+  // Google Sheets sync back state
+  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
+  const [appsScriptUrl, setAppsScriptUrl] = useState('');
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  useEffect(() => {
+    const savedUrl = localStorage.getItem('apps_script_url') || '';
+    setAppsScriptUrl(savedUrl);
+  }, []);
+
+  const handleSyncToGoogleSheet = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!appsScriptUrl.trim()) {
+      alert('Please configure a valid Google Apps Script Web App URL first.');
+      return;
+    }
+
+    setIsSyncing(true);
+    localStorage.setItem('apps_script_url', appsScriptUrl.trim());
+
+    try {
+      // Sync members based on current view/filters
+      const dataToSync = filteredMembers;
+
+      await fetch(appsScriptUrl.trim(), {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dataToSync),
+      });
+
+      alert(`Sync request sent! Google Sheet should update shortly with ${dataToSync.length} member records.`);
+      setIsSyncModalOpen(false);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to connect to the Apps Script URL. Please check the URL and your internet connection.');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const reloadData = () => {
     if (!user) return;
     const allMembers = db.getMembers();
@@ -305,10 +348,10 @@ export default function MemberManagement() {
           </div>
 
           {user.role !== 'office_bearer' && (
-            <div className="flex gap-2">
+            <div className="flex gap-2 overflow-x-auto pb-1 max-w-full">
               <button
                 onClick={() => { clearForm(); setIsModalOpen(true); }}
-                className="flex items-center gap-1.5 bg-emerald-800 hover:bg-emerald-700 text-white font-bold px-3.5 py-2.5 rounded-xl text-xs shadow-md shadow-emerald-800/10 cursor-pointer"
+                className="flex items-center gap-1.5 bg-emerald-800 hover:bg-emerald-700 text-white font-bold px-3.5 py-2.5 rounded-xl text-xs shadow-md shadow-emerald-800/10 cursor-pointer shrink-0"
               >
                 <Plus className="h-4 w-4" />
                 <span>{t('addMember')}</span>
@@ -316,7 +359,7 @@ export default function MemberManagement() {
 
               <button
                 onClick={() => setIsImportOpen(true)}
-                className="flex items-center gap-1.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold px-3.5 py-2.5 rounded-xl text-xs shadow-sm cursor-pointer"
+                className="flex items-center gap-1.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold px-3.5 py-2.5 rounded-xl text-xs shadow-sm cursor-pointer shrink-0"
               >
                 <Upload className="h-4 w-4 text-emerald-700" />
                 <span>{t('importExcel')}</span>
@@ -324,10 +367,18 @@ export default function MemberManagement() {
 
               <button
                 onClick={handleExportCSV}
-                className="flex items-center gap-1.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold px-3.5 py-2.5 rounded-xl text-xs shadow-sm cursor-pointer"
+                className="flex items-center gap-1.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold px-3.5 py-2.5 rounded-xl text-xs shadow-sm cursor-pointer shrink-0"
               >
                 <Download className="h-4 w-4 text-emerald-700" />
                 <span>{t('exportExcel')}</span>
+              </button>
+
+              <button
+                onClick={() => setIsSyncModalOpen(true)}
+                className="flex items-center gap-1.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold px-3.5 py-2.5 rounded-xl text-xs shadow-sm cursor-pointer shrink-0"
+              >
+                <FileSpreadsheet className="h-4 w-4 text-emerald-700" />
+                <span>Sync to Sheet</span>
               </button>
             </div>
           )}
@@ -881,6 +932,120 @@ export default function MemberManagement() {
                     </div>
                   </form>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Google Sheets Sync Back Modal */}
+        {isSyncModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-fadeIn">
+            <div className="bg-white w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl border border-slate-200 max-h-[90vh] flex flex-col">
+              <div className="bg-emerald-950 text-white p-5 flex justify-between items-center shrink-0">
+                <h3 className="font-bold text-sm">Configure Google Sheet Sync</h3>
+                <button 
+                  onClick={() => setIsSyncModalOpen(false)}
+                  className="h-7 w-7 flex items-center justify-center rounded-full hover:bg-white/10 text-white"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="p-6 overflow-y-auto space-y-4 text-xs font-semibold text-slate-700 flex-1 font-sans">
+                {/* Instructions */}
+                <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-150 text-[11px] text-emerald-800 space-y-2 font-normal leading-relaxed">
+                  <p className="font-bold text-emerald-900">Sync Guide using Google Apps Script:</p>
+                  <ol className="list-decimal pl-4 space-y-1">
+                    <li>Open your target Google Sheet.</li>
+                    <li>Go to <strong>Extensions</strong> &rarr; <strong>Apps Script</strong>.</li>
+                    <li>Delete any existing code, paste the script below, and click <strong>Save</strong>:</li>
+                  </ol>
+                  
+                  {/* Copyable Script Block */}
+                  <pre className="bg-white/75 p-2.5 rounded border border-emerald-200 text-[10px] font-mono select-all overflow-x-auto whitespace-pre block max-h-[160px] text-slate-800">
+{`function doPost(e) {
+  try {
+    var data = JSON.parse(e.postData.contents);
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    sheet.clearContents();
+    
+    // Set headers
+    var headers = ["MemberID", "FullName", "MobileNumber", "WhatsAppNumber", "Address", "WardUnit", "AgeCategory", "Occupation", "BloodGroup", "LocationStatus"];
+    sheet.appendRow(headers);
+    
+    for (var i = 0; i < data.length; i++) {
+      var m = data[i];
+      sheet.appendRow([
+        m.memberId,
+        m.fullName,
+        m.mobileNumber,
+        m.whatsappNumber || "",
+        m.address || "",
+        m.wardUnit || "",
+        m.ageCategory,
+        m.occupation || "",
+        m.bloodGroup || "",
+        m.locationStatus
+      ]);
+    }
+    return ContentService.createTextOutput(JSON.stringify({ status: "success", count: data.length }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: error.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}`}
+                  </pre>
+                  
+                  <ol className="list-decimal pl-4 space-y-1" start={4}>
+                    <li>Click <strong>Deploy</strong> &rarr; <strong>New Deployment</strong>.</li>
+                    <li>Choose <strong>Web App</strong> (Click gear icon next to "Select type").</li>
+                    <li>Set <em>Execute as:</em> <strong>Me (your email)</strong>.</li>
+                    <li>Set <em>Who has access:</em> <strong>Anyone</strong> (necessary for client API calls).</li>
+                    <li>Click <strong>Deploy</strong>, authorize permissions if prompted, and copy the <strong>Web App URL</strong>.</li>
+                  </ol>
+                </div>
+
+                <form onSubmit={handleSyncToGoogleSheet} className="space-y-4">
+                  <div>
+                    <label className="block text-slate-500 mb-1">Google Apps Script Web App URL</label>
+                    <input 
+                      type="url" 
+                      required
+                      value={appsScriptUrl}
+                      onChange={(e) => setAppsScriptUrl(e.target.value)}
+                      placeholder="https://script.google.com/macros/s/.../exec"
+                      className="w-full border border-slate-300 bg-slate-50 rounded-xl p-3 outline-none focus:border-emerald-700 focus:bg-white font-normal"
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
+                    <button 
+                      type="button" 
+                      onClick={() => setIsSyncModalOpen(false)}
+                      className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      type="submit" 
+                      disabled={isSyncing}
+                      className="px-4 py-2.5 bg-emerald-800 hover:bg-emerald-700 disabled:bg-emerald-800/40 text-white rounded-xl flex items-center gap-1.5 cursor-pointer disabled:cursor-not-allowed transition-colors font-bold shadow-sm"
+                    >
+                      {isSyncing ? (
+                        <>
+                          <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent inline-block" />
+                          <span>Syncing...</span>
+                        </>
+                      ) : (
+                        <>
+                          <FileSpreadsheet className="h-4 w-4 text-amber-400" />
+                          <span>Save & Sync Now</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
           </div>

@@ -30,6 +30,22 @@ export default function CallingPage() {
   // Editing Note State (stores the active note being typed for each assignment)
   const [editingNotes, setEditingNotes] = useState<{ [key: string]: string }>({});
 
+  // WhatsApp Template States
+  const [waTemplate, setWaTemplate] = useState('Assalamu Alaikum {name}, this is from {org} regarding our program {program}.');
+  const [isTemplateEditorOpen, setIsTemplateEditorOpen] = useState(false);
+
+  useEffect(() => {
+    const savedTemplate = localStorage.getItem('whatsapp_template');
+    if (savedTemplate) {
+      setWaTemplate(savedTemplate);
+    }
+  }, []);
+
+  const handleSaveTemplate = (newTemplate: string) => {
+    setWaTemplate(newTemplate);
+    localStorage.setItem('whatsapp_template', newTemplate);
+  };
+
   useEffect(() => {
     if (!user) return;
 
@@ -106,9 +122,45 @@ export default function CallingPage() {
     }));
   };
 
-  const getWhatsAppLink = (phone: string) => {
-    const cleanPhone = phone.replace(/[^0-9]/g, '');
-    return `https://wa.me/${cleanPhone}?text=Assalamu%2520Alaikum`;
+  const insertPlaceholder = (placeholder: string) => {
+    const textarea = document.getElementById('template-textarea') as HTMLTextAreaElement;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+    const before = text.substring(0, start);
+    const after = text.substring(end, text.length);
+
+    const updatedTemplate = before + placeholder + after;
+    handleSaveTemplate(updatedTemplate);
+
+    // Reset cursor position after state updates
+    setTimeout(() => {
+      textarea.focus();
+      textarea.selectionStart = textarea.selectionEnd = start + placeholder.length;
+    }, 50);
+  };
+
+  const resolveTemplate = (template: string, member: Member, programName: string) => {
+    const org = db.getOrganizations().find(o => o.id === member.orgId);
+    const orgName = org ? org.name : 'General';
+    return template
+      .replace(/{name}/g, member.fullName)
+      .replace(/{memberId}/g, member.memberId)
+      .replace(/{ward}/g, member.wardUnit || '')
+      .replace(/{phone}/g, member.mobileNumber)
+      .replace(/{org}/g, orgName)
+      .replace(/{program}/g, programName)
+      .replace(/{location}/g, t(member.locationStatus as any))
+      .replace(/{age}/g, t(member.ageCategory as any))
+      .replace(/{blood}/g, member.bloodGroup || '');
+  };
+
+  const getWhatsAppLink = (member: Member, programName: string) => {
+    const cleanPhone = member.mobileNumber.replace(/[^0-9]/g, '');
+    const resolvedText = resolveTemplate(waTemplate, member, programName);
+    return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(resolvedText)}`;
   };
 
   // Filter tasks based on search and status
@@ -126,6 +178,9 @@ export default function CallingPage() {
   const totalTasks = tasks.length;
   const completedTasks = tasks.filter(t => t.status !== 'not_called').length;
   const progressPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+  const activeProg = programs.find(p => p.id === selectedProgramId);
+  const programName = activeProg ? activeProg.name : '';
 
   // Status badges color map
   const statusColors = {
@@ -184,6 +239,82 @@ export default function CallingPage() {
               </div>
             </div>
 
+            {/* WhatsApp Template settings */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setIsTemplateEditorOpen(!isTemplateEditorOpen)}
+                className="w-full flex items-center justify-between p-5 font-bold text-slate-800 text-sm hover:bg-slate-50/50 transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-emerald-700">💬</span>
+                  <span>WhatsApp Message Template Settings</span>
+                </div>
+                <span className="text-xs text-slate-500 font-semibold bg-slate-100 hover:bg-slate-250 px-2.5 py-1 rounded-lg">
+                  {isTemplateEditorOpen ? 'Hide Panel' : 'Configure Template'}
+                </span>
+              </button>
+
+              {isTemplateEditorOpen && (
+                <div className="p-5 border-t border-slate-100 bg-slate-50/40 space-y-4 animate-fadeIn">
+                  <div className="space-y-1.5">
+                    <label htmlFor="template-textarea" className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      Message Template Text
+                    </label>
+                    <textarea
+                      id="template-textarea"
+                      value={waTemplate}
+                      onChange={(e) => handleSaveTemplate(e.target.value)}
+                      rows={3}
+                      placeholder="Enter WhatsApp template message..."
+                      className="w-full bg-white border border-slate-305 rounded-xl p-3 text-xs font-normal outline-none focus:border-emerald-700"
+                    />
+                  </div>
+
+                  {/* Pickers list */}
+                  <div className="space-y-2">
+                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      Click details to insert at cursor position:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {([
+                        { tag: '{name}', label: 'Name' },
+                        { tag: '{memberId}', label: 'Member ID' },
+                        { tag: '{ward}', label: 'Ward/Unit' },
+                        { tag: '{phone}', label: 'Mobile' },
+                        { tag: '{org}', label: 'Org Name' },
+                        { tag: '{program}', label: 'Program Name' },
+                        { tag: '{location}', label: 'Location' },
+                        { tag: '{age}', label: 'Age Group' },
+                        { tag: '{blood}', label: 'Blood Group' }
+                      ]).map((item) => (
+                        <button
+                          key={item.tag}
+                          type="button"
+                          onClick={() => insertPlaceholder(item.tag)}
+                          className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-650 hover:text-slate-850 border border-slate-200 hover:border-slate-350 rounded-lg text-[10px] font-bold shadow-sm transition-all cursor-pointer"
+                        >
+                          + {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Live Preview block */}
+                  {tasks.length > 0 && (
+                    <div className="space-y-1.5 pt-2 border-t border-slate-200/60">
+                      <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        Live Preview (using {tasks[0].member.fullName})
+                      </span>
+                      <div className="bg-emerald-50/50 border border-emerald-100 text-emerald-900 rounded-xl p-3 text-[11px] font-normal leading-relaxed whitespace-pre-wrap select-all">
+                        {resolveTemplate(waTemplate, tasks[0].member, programs.find(p => p.id === selectedProgramId)?.name || '')}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* Search and Filters */}
             <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
@@ -220,53 +351,53 @@ export default function CallingPage() {
                 </div>
               ) : (
                 filteredTasks.map((task) => {
-                  const m = task.member;
-                  const assignId = task.assignmentId;
-                  
-                  return (
-                    <div 
-                      key={assignId}
-                      className={`bg-white rounded-2xl p-5 border shadow-sm transition-all duration-200 flex flex-col justify-between ${
-                        task.status === 'confirmed' ? 'border-emerald-100 hover:border-emerald-200 shadow-emerald-50/20' :
-                        task.status === 'not_attending' ? 'border-red-100 hover:border-red-200' :
-                        task.status === 'not_called' ? 'border-slate-200' : 'border-slate-250'
-                      }`}
-                    >
-                      <div className="space-y-4">
-                        {/* Member Meta Header */}
-                        <div className="flex justify-between items-start gap-2">
-                          <div className="min-w-0">
-                            <span className="text-[10px] font-mono font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
-                              {m.memberId}
+                    const m = task.member;
+                    const assignId = task.assignmentId;
+                    
+                    return (
+                      <div 
+                        key={assignId}
+                        className={`bg-white rounded-2xl p-5 border shadow-sm transition-all duration-200 flex flex-col justify-between ${
+                          task.status === 'confirmed' ? 'border-emerald-100 hover:border-emerald-200 shadow-emerald-50/20' :
+                          task.status === 'not_attending' ? 'border-red-100 hover:border-red-200' :
+                          task.status === 'not_called' ? 'border-slate-200' : 'border-slate-250'
+                        }`}
+                      >
+                        <div className="space-y-4">
+                          {/* Member Meta Header */}
+                          <div className="flex justify-between items-start gap-2">
+                            <div className="min-w-0">
+                              <span className="text-[10px] font-mono font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+                                {m.memberId}
+                              </span>
+                              <h4 className="font-extrabold text-sm md:text-base text-slate-900 pt-1.5">{m.fullName}</h4>
+                              <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                                🏡 {m.wardUnit || 'No Ward'} • Location: <span className="text-emerald-850 font-bold">{t(m.locationStatus as any)}</span>
+                              </p>
+                            </div>
+  
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-extrabold uppercase border ${statusColors[task.status]}`}>
+                              {t(task.status as any)}
                             </span>
-                            <h4 className="font-extrabold text-sm md:text-base text-slate-900 pt-1.5">{m.fullName}</h4>
-                            <p className="text-[11px] text-slate-500 font-medium mt-0.5">
-                              🏡 {m.wardUnit || 'No Ward'} • Location: <span className="text-emerald-850 font-bold">{t(m.locationStatus as any)}</span>
-                            </p>
                           </div>
-
-                          <span className={`px-2 py-0.5 rounded text-[9px] font-extrabold uppercase border ${statusColors[task.status]}`}>
-                            {t(task.status as any)}
-                          </span>
-                        </div>
-
-                        {/* Quick Action Dial Buttons */}
-                        <div className="grid grid-cols-2 gap-2 bg-slate-50 p-2 rounded-xl border border-slate-100">
-                          <a 
-                            href={`tel:${m.mobileNumber}`}
-                            onClick={() => handleStatusChange(assignId, 'called')}
-                            className="flex items-center justify-center gap-1.5 rounded-lg bg-emerald-850 hover:bg-emerald-950 text-white font-bold text-xs py-2.5 transition-colors shadow-sm"
-                          >
-                            <Phone className="h-3.5 w-3.5" />
-                            <span>{t('call')}</span>
-                          </a>
-                          <a 
-                            href={getWhatsAppLink(m.mobileNumber)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={() => handleStatusChange(assignId, 'called')}
-                            className="flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2.5 transition-colors shadow-sm"
-                          >
+  
+                          {/* Quick Action Dial Buttons */}
+                          <div className="grid grid-cols-2 gap-2 bg-slate-50 p-2 rounded-xl border border-slate-100">
+                            <a 
+                              href={`tel:${m.mobileNumber}`}
+                              onClick={() => handleStatusChange(assignId, 'called')}
+                              className="flex items-center justify-center gap-1.5 rounded-lg bg-emerald-850 hover:bg-emerald-950 text-white font-bold text-xs py-2.5 transition-colors shadow-sm"
+                            >
+                              <Phone className="h-3.5 w-3.5" />
+                              <span>{t('call')}</span>
+                            </a>
+                            <a 
+                              href={getWhatsAppLink(m, programName)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={() => handleStatusChange(assignId, 'called')}
+                              className="flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2.5 transition-colors shadow-sm"
+                            >
                             💬
                             <span>{t('whatsapp')}</span>
                           </a>

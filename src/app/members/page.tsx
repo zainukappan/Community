@@ -90,7 +90,7 @@ export default function MemberManagement() {
         method: 'POST',
         mode: 'no-cors',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'text/plain',
         },
         body: JSON.stringify(dataToSync),
       });
@@ -124,7 +124,7 @@ export default function MemberManagement() {
         method: 'POST',
         mode: 'no-cors',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'text/plain',
         },
         body: JSON.stringify(dataToSync),
       });
@@ -1101,7 +1101,10 @@ export default function MemberManagement() {
                       type="url" 
                       required
                       value={appsScriptUrl}
-                      onChange={(e) => setAppsScriptUrl(e.target.value)}
+                      onChange={(e) => {
+                        setAppsScriptUrl(e.target.value);
+                        localStorage.setItem('apps_script_url', e.target.value.trim());
+                      }}
                       placeholder="https://script.google.com/macros/s/.../exec"
                       className="w-full border border-slate-300 bg-slate-50 rounded-xl p-3 outline-none focus:border-emerald-700 focus:bg-white font-normal"
                     />

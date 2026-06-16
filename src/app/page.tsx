@@ -23,8 +23,8 @@ export default function PublicDirectory() {
   
   const [orgs, setOrgs] = useState<Organization[]>([]);
   const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
-  const [bearers, setBearers] = useState<Profile[]>([]);
-  const [executives, setExecutives] = useState<Profile[]>([]);
+  const [bearers, setBearers] = useState<any[]>([]);
+  const [executives, setExecutives] = useState<any[]>([]);
 
   // Load organizations
   useEffect(() => {
@@ -35,13 +35,58 @@ export default function PublicDirectory() {
   useEffect(() => {
     if (selectedOrgId) {
       const profiles = db.getProfilesByOrg(selectedOrgId);
-      setBearers(profiles.filter(p => p.role === 'office_bearer'));
-      setExecutives(profiles.filter(p => p.role === 'executive'));
+      const customEntries = db.getOrgDirectoryEntries().filter(e => e.orgId === selectedOrgId);
+      const allMembers = db.getMembers();
+
+      const customBearers = customEntries
+        .filter(e => e.roleCategory === 'office_bearer')
+        .map(e => {
+          const m = allMembers.find(mem => mem.id === e.memberId);
+          return {
+            id: e.id,
+            fullName: m ? m.fullName : 'Unknown',
+            phone: m ? m.mobileNumber : '',
+            roleTitle: e.responsibility
+          };
+        }).filter(b => b.phone !== '');
+
+      const customExecutives = customEntries
+        .filter(e => e.roleCategory === 'executive')
+        .map(e => {
+          const m = allMembers.find(mem => mem.id === e.memberId);
+          return {
+            id: e.id,
+            fullName: m ? m.fullName : 'Unknown',
+            phone: m ? m.mobileNumber : '',
+            roleTitle: e.responsibility
+          };
+        }).filter(e => e.phone !== '');
+
+      const legacyBearers = profiles
+        .filter(p => p.role === 'office_bearer')
+        .map(p => ({
+          id: p.id,
+          fullName: p.fullName,
+          phone: p.phone || '',
+          roleTitle: t('office_bearer')
+        }));
+
+      const legacyExecutives = profiles
+        .filter(p => p.role === 'executive')
+        .map(p => ({
+          id: p.id,
+          fullName: p.fullName,
+          phone: p.phone || '',
+          roleTitle: t('executive')
+        }));
+
+      setBearers([...legacyBearers, ...customBearers]);
+      setExecutives([...legacyExecutives, ...customExecutives]);
     } else {
       setBearers([]);
       setExecutives([]);
     }
-  }, [selectedOrgId]);
+  }, [selectedOrgId, locale]);
 
   const selectedOrg = orgs.find(o => o.id === selectedOrgId);
 
@@ -223,7 +268,7 @@ export default function PublicDirectory() {
                             <h4 className="font-bold text-slate-800 text-sm md:text-base truncate">{bearer.fullName}</h4>
                             <p className="text-xs text-amber-600 font-semibold mt-0.5 flex items-center gap-1">
                               <Briefcase className="h-3 w-3 shrink-0" />
-                              <span>{t('office_bearer')}</span>
+                              <span>{bearer.roleTitle}</span>
                             </p>
                           </div>
                         </div>
@@ -283,7 +328,7 @@ export default function PublicDirectory() {
                           </div>
                           <div className="min-w-0">
                             <h4 className="font-bold text-slate-800 text-xs sm:text-sm truncate">{exec.fullName}</h4>
-                            <span className="text-[10px] text-slate-400 font-medium">{t('executive')}</span>
+                            <span className="text-[10px] text-slate-400 font-medium">{exec.roleTitle}</span>
                           </div>
                         </div>
 

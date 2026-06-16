@@ -55,6 +55,14 @@ export interface CallAssignment {
   notes?: string;
 }
 
+export interface OrgDirectoryEntry {
+  id: string;
+  orgId: string;
+  memberId: string;
+  responsibility: string; // e.g. President, Secretary, etc.
+  roleCategory: 'office_bearer' | 'executive';
+}
+
 // Initial Seeds
 const initialOrganizations: Organization[] = [
   {
@@ -315,6 +323,9 @@ class LocalDB {
     if (!localStorage.getItem('call_assignments')) {
       localStorage.setItem('call_assignments', JSON.stringify(initialAssignments));
     }
+    if (!localStorage.getItem('org_directory_entries')) {
+      localStorage.setItem('org_directory_entries', JSON.stringify([]));
+    }
   }
 
   // Generic Helpers
@@ -455,6 +466,27 @@ class LocalDB {
   clearAssignmentsByProgram(programId: string) {
     const current = this.getCallAssignments();
     this.set('call_assignments', current.filter(a => a.programId !== programId));
+  }
+
+  // Custom Public Directory API
+  getOrgDirectoryEntries(): OrgDirectoryEntry[] {
+    return this.get<OrgDirectoryEntry>('org_directory_entries');
+  }
+
+  saveOrgDirectoryEntry(entry: OrgDirectoryEntry) {
+    const list = this.getOrgDirectoryEntries();
+    const idx = list.findIndex(e => e.id === entry.id);
+    if (idx >= 0) {
+      list[idx] = entry;
+    } else {
+      list.push(entry);
+    }
+    this.set('org_directory_entries', list);
+  }
+
+  deleteOrgDirectoryEntry(id: string) {
+    const list = this.getOrgDirectoryEntries();
+    this.set('org_directory_entries', list.filter(e => e.id !== id));
   }
 }
 

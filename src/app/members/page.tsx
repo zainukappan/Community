@@ -7,7 +7,7 @@ import { useLocale } from '@/lib/locale';
 import { db, Member, Organization } from '@/lib/db';
 import { 
   Plus, Search, Edit2, Trash2, Filter, 
-  Download, Upload, Save, X, Phone, UserCheck, ShieldAlert, FileSpreadsheet 
+  Download, Upload, Save, X, Phone, UserCheck, ShieldAlert, FileSpreadsheet, Users
 } from 'lucide-react';
 
 export default function MemberManagement() {
@@ -60,6 +60,13 @@ export default function MemberManagement() {
 
   // Active Organization Tab (Visible to Super Admin)
   const [activeOrgTab, setActiveOrgTab] = useState('');
+
+  // Custom Public Directory states
+  const [isDirectoryModalOpen, setIsDirectoryModalOpen] = useState(false);
+  const [directoryEntries, setDirectoryEntries] = useState<any[]>([]);
+  const [dirMemberId, setDirMemberId] = useState('');
+  const [dirResponsibility, setDirResponsibility] = useState('');
+  const [dirCategory, setDirCategory] = useState<'office_bearer' | 'executive'>('office_bearer');
 
   useEffect(() => {
     const savedUrl = localStorage.getItem('apps_script_url') || '';
@@ -139,6 +146,7 @@ export default function MemberManagement() {
     const allMembers = db.getMembers();
     const allOrgs = db.getOrganizations().filter(o => o.status === 'active');
     setOrgs(allOrgs);
+    setDirectoryEntries(db.getOrgDirectoryEntries());
 
     if (user.role === 'super_admin') {
       setMembers(allMembers);
@@ -238,6 +246,29 @@ export default function MemberManagement() {
       reloadData();
       triggerAutoSync();
     }
+  };
+
+  const handleAddDirectoryEntry = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!dirMemberId || !dirResponsibility || !activeOrgTab) return;
+
+    const newEntry = {
+      id: `dir-entry-${Date.now()}`,
+      orgId: activeOrgTab,
+      memberId: dirMemberId,
+      responsibility: dirResponsibility,
+      roleCategory: dirCategory
+    };
+
+    db.saveOrgDirectoryEntry(newEntry);
+    setDirMemberId('');
+    setDirResponsibility('');
+    reloadData();
+  };
+
+  const handleDeleteDirectoryEntry = (id: string) => {
+    db.deleteOrgDirectoryEntry(id);
+    reloadData();
   };
 
   // Filter and search logic
@@ -425,6 +456,18 @@ export default function MemberManagement() {
               >
                 <FileSpreadsheet className="h-4 w-4 text-emerald-700" />
                 <span>Sync to Sheet</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setDirMemberId('');
+                  setDirResponsibility('');
+                  setIsDirectoryModalOpen(true);
+                }}
+                className="flex items-center gap-1.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold px-3.5 py-2.5 rounded-xl text-xs shadow-sm cursor-pointer shrink-0"
+              >
+                <Users className="h-4 w-4 text-emerald-700" />
+                <span>Configure Directory</span>
               </button>
             </div>
           )}
@@ -1137,6 +1180,165 @@ export default function MemberManagement() {
                     </button>
                   </div>
                 </form>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Configure Public Directory Modal */}
+        {isDirectoryModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-fadeIn">
+            <div className="bg-white w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl border border-slate-200 max-h-[90vh] flex flex-col">
+              <div className="bg-emerald-950 text-white p-5 flex justify-between items-center shrink-0 border-b border-amber-500/10">
+                <div>
+                  <h3 className="font-bold text-sm">Configure Public Directory</h3>
+                  <p className="text-[10px] text-emerald-300 font-light mt-0.5">
+                    For {orgs.find(o => o.id === activeOrgTab)?.name || 'this Organization'}
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setIsDirectoryModalOpen(false)}
+                  className="h-7 w-7 flex items-center justify-center rounded-full hover:bg-white/10 text-white"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 overflow-y-auto space-y-6 flex-1 text-xs">
+                
+                {/* Form to Add New Custom Entry */}
+                <form onSubmit={handleAddDirectoryEntry} className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3 font-semibold text-slate-700">
+                  <h4 className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Add Directory Contact</h4>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-slate-500 mb-1">Select Member</label>
+                      <select
+                        value={dirMemberId}
+                        required
+                        onChange={(e) => setDirMemberId(e.target.value)}
+                        className="w-full border border-slate-300 bg-white rounded-xl p-2.5 outline-none focus:border-emerald-700 font-normal"
+                      >
+                        <option value="">Choose Member</option>
+                        {members
+                          .filter(m => m.orgId === activeOrgTab && m.status === 'active')
+                          .map(m => (
+                            <option key={m.id} value={m.id}>
+                              {m.fullName} ({m.memberId})
+                            </option>
+                          ))
+                        }
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-500 mb-1">Responsibility / Designation</label>
+                      <input 
+                        type="text" 
+                        required
+                        value={dirResponsibility}
+                        onChange={(e) => setDirResponsibility(e.target.value)}
+                        placeholder="e.g. President, General Secretary"
+                        className="w-full border border-slate-305 bg-white rounded-xl p-2.5 outline-none focus:border-emerald-700 font-normal"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+                    <div className="flex items-center gap-4">
+                      <label className="flex items-center gap-1.5 cursor-pointer font-bold text-slate-650">
+                        <input
+                          type="radio"
+                          name="dirCategory"
+                          checked={dirCategory === 'office_bearer'}
+                          onChange={() => setDirCategory('office_bearer')}
+                          className="text-emerald-700 h-4 w-4 border-slate-350 focus:ring-emerald-750/15"
+                        />
+                        <span>Office Bearer</span>
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer font-bold text-slate-650">
+                        <input
+                          type="radio"
+                          name="dirCategory"
+                          checked={dirCategory === 'executive'}
+                          onChange={() => setDirCategory('executive')}
+                          className="text-emerald-700 h-4 w-4 border-slate-350 focus:ring-emerald-750/15"
+                        />
+                        <span>Executive Committee</span>
+                      </label>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="bg-emerald-800 hover:bg-emerald-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs shadow-sm cursor-pointer self-end sm:self-center"
+                    >
+                      Add Contact
+                    </button>
+                  </div>
+                </form>
+
+                {/* List of current custom directory entries */}
+                <div className="space-y-3">
+                  <h4 className="text-[10px] text-slate-400 uppercase tracking-wider font-bold pl-0.5">
+                    Current Public Contacts ({directoryEntries.filter(e => e.orgId === activeOrgTab).length})
+                  </h4>
+
+                  <div className="border border-slate-200 rounded-xl overflow-hidden divide-y divide-slate-100 bg-white shadow-sm">
+                    {directoryEntries.filter(e => e.orgId === activeOrgTab).length === 0 ? (
+                      <p className="p-5 text-center text-slate-400 italic font-normal">
+                        No custom directory contacts configured yet. Use the form above to add one.
+                      </p>
+                    ) : (
+                      directoryEntries
+                        .filter(e => e.orgId === activeOrgTab)
+                        .map(e => {
+                          const m = members.find(mem => mem.id === e.memberId);
+                          return (
+                            <div key={e.id} className="p-3.5 flex items-center justify-between hover:bg-slate-50/50 transition-colors font-medium">
+                              <div className="space-y-1">
+                                <span className="text-slate-900 font-bold text-sm block">
+                                  {m ? m.fullName : 'Unknown Member'}
+                                </span>
+                                <div className="flex items-center gap-2 text-[10px] text-slate-500 font-semibold uppercase tracking-wide">
+                                  <span className={`px-1.5 py-0.5 rounded ${
+                                    e.roleCategory === 'office_bearer' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'
+                                  }`}>
+                                    {e.roleCategory === 'office_bearer' ? 'Office Bearer' : 'Executive'}
+                                  </span>
+                                  <span>&bull;</span>
+                                  <span className="text-emerald-850 font-extrabold">{e.responsibility}</span>
+                                </div>
+                                <span className="text-[10px] font-mono text-slate-400 block pt-0.5">
+                                  📞 {m ? m.mobileNumber : '---'}
+                                </span>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteDirectoryEntry(e.id)}
+                                className="text-red-650 hover:text-red-800 font-bold hover:underline cursor-pointer text-xs p-1"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          );
+                        })
+                    )}
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Footer */}
+              <div className="bg-slate-50 p-4 border-t border-slate-100 flex justify-end shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsDirectoryModalOpen(false)}
+                  className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl cursor-pointer"
+                >
+                  Close
+                </button>
               </div>
             </div>
           </div>

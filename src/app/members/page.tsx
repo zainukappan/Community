@@ -105,6 +105,35 @@ export default function MemberManagement() {
     }
   };
 
+  const triggerAutoSync = async () => {
+    const savedUrl = localStorage.getItem('apps_script_url');
+    if (!savedUrl || !savedUrl.trim()) return;
+
+    try {
+      const allMembers = db.getMembers();
+      const allOrgs = db.getOrganizations().filter(o => o.status === 'active');
+      const dataToSync = allMembers.map(m => {
+        const org = allOrgs.find(o => o.id === m.orgId);
+        return {
+          ...m,
+          orgName: org ? org.name : 'General'
+        };
+      });
+
+      await fetch(savedUrl.trim(), {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dataToSync),
+      });
+      console.log('Google Sheets Auto-sync complete.');
+    } catch (err) {
+      console.error('Google Sheets Auto-sync failed:', err);
+    }
+  };
+
   const reloadData = () => {
     if (!user) return;
     const allMembers = db.getMembers();
@@ -199,6 +228,7 @@ export default function MemberManagement() {
     setIsModalOpen(false);
     clearForm();
     reloadData();
+    triggerAutoSync();
   };
 
   // Delete Member
@@ -206,6 +236,7 @@ export default function MemberManagement() {
     if (confirm('Are you sure you want to delete this member? This action is permanent.')) {
       db.deleteMember(id);
       reloadData();
+      triggerAutoSync();
     }
   };
 
@@ -298,6 +329,7 @@ export default function MemberManagement() {
       setCsvText('');
       setGoogleSheetUrl('');
       reloadData();
+      triggerAutoSync();
       return true;
     } catch (err) {
       setImportError('Failed to parse CSV. Please ensure formatting matches exactly: MemberID, FullName, MobileNumber, WhatsAppNumber, Address, WardUnit, AgeCategory, Occupation, BloodGroup, LocationStatus');

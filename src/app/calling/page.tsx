@@ -149,12 +149,13 @@ export default function CallingPage() {
     return template
       .replace(/{name}/g, member.fullName)
       .replace(/{memberId}/g, member.memberId)
-      .replace(/{ward}/g, member.wardUnit || '')
+      .replace(/{father}/g, member.fatherName || '')
+      .replace(/{ward}/g, '')
       .replace(/{phone}/g, member.mobileNumber)
       .replace(/{org}/g, orgName)
       .replace(/{program}/g, programName)
       .replace(/{location}/g, t(member.locationStatus as any))
-      .replace(/{age}/g, t(member.ageCategory as any))
+      .replace(/{age}/g, '')
       .replace(/{blood}/g, member.bloodGroup || '');
   };
 
@@ -169,7 +170,7 @@ export default function CallingPage() {
     const matchesSearch = 
       t.member.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       t.member.memberId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (t.member.wardUnit && t.member.wardUnit.toLowerCase().includes(searchQuery.toLowerCase()));
+      (t.member.fatherName && t.member.fatherName.toLowerCase().includes(searchQuery.toLowerCase()));
     
     const matchesStatus = filterStatus ? t.status === filterStatus : true;
 
@@ -373,7 +374,7 @@ export default function CallingPage() {
                               </span>
                               <h4 className="font-extrabold text-sm md:text-base text-slate-900 pt-1.5">{m.fullName}</h4>
                               <p className="text-[11px] text-slate-500 font-medium mt-0.5">
-                                🏡 {m.wardUnit || 'No Ward'} • Location: <span className="text-emerald-850 font-bold">{t(m.locationStatus as any)}</span>
+                                👨 {m.fatherName || '---'} • Location: <span className="text-emerald-850 font-bold">{t(m.locationStatus as any)}</span>
                               </p>
                             </div>
   

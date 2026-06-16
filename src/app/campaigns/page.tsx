@@ -28,9 +28,6 @@ export default function CampaignsPage() {
   // Workflow State
   const [selectedProgramId, setSelectedProgramId] = useState('');
   
-  // Target Member Filters
-  const [filterWard, setFilterWard] = useState('');
-  const [filterAge, setFilterAge] = useState('');
   const [filterLocation, setFilterLocation] = useState('');
   
   // Selected Callers
@@ -104,15 +101,10 @@ export default function CampaignsPage() {
   const activeProgram = db.getPrograms().find(p => p.id === selectedProgramId);
   const activeOrg = organizations.find(o => o.id === activeProgram?.orgId);
 
-  // Wards matching selected program's organization members
-  const uniqueWards = Array.from(new Set(members.map(m => m.wardUnit).filter(Boolean)));
-
   // Target Members matching active filters
   const filteredTargetMembers = members.filter(m => {
-    const matchesWard = filterWard ? m.wardUnit === filterWard : true;
-    const matchesAge = filterAge ? m.ageCategory === filterAge : true;
     const matchesLocation = filterLocation ? m.locationStatus === filterLocation : true;
-    return matchesWard && matchesAge && matchesLocation;
+    return matchesLocation;
   });
 
   // Toggle caller selection
@@ -266,38 +258,7 @@ export default function CampaignsPage() {
                   Target Members Selector
                 </h4>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {/* Ward filter */}
-                  <div className="space-y-1">
-                    <label className="block text-[10px] text-slate-500 font-bold uppercase">Ward/Unit</label>
-                    <select
-                      value={filterWard}
-                      onChange={(e) => setFilterWard(e.target.value)}
-                      className="w-full border border-slate-200 bg-slate-50 rounded-lg p-2 text-xs font-normal outline-none"
-                    >
-                      <option value="">All Wards</option>
-                      {uniqueWards.map(w => (
-                        <option key={w} value={w}>{w}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Age filter */}
-                  <div className="space-y-1">
-                    <label className="block text-[10px] text-slate-500 font-bold uppercase">Age Category</label>
-                    <select
-                      value={filterAge}
-                      onChange={(e) => setFilterAge(e.target.value)}
-                      className="w-full border border-slate-200 bg-slate-50 rounded-lg p-2 text-xs font-normal outline-none"
-                    >
-                      <option value="">All Ages</option>
-                      <option value="child">{t('child')}</option>
-                      <option value="youth">{t('youth')}</option>
-                      <option value="middle">{t('middle')}</option>
-                      <option value="senior">{t('senior')}</option>
-                    </select>
-                  </div>
-
+                <div className="grid grid-cols-1 gap-3">
                   {/* Location filter */}
                   <div className="space-y-1">
                     <label className="block text-[10px] text-slate-500 font-bold uppercase">Location Status</label>
@@ -467,7 +428,7 @@ export default function CampaignsPage() {
                                 <div className="min-w-0">
                                   <span className="text-[9px] font-mono text-slate-400 font-bold block">{member.memberId}</span>
                                   <span className="text-slate-800 block font-bold text-[12px]">{member.fullName}</span>
-                                  <span className="text-[9px] text-slate-400 font-medium block">🏡 {member.wardUnit || 'No Ward'} • Location: {t(member.locationStatus as any)}</span>
+                                  <span className="text-[9px] text-slate-400 font-medium block">👨 {member.fatherName || '---'} • Location: {t(member.locationStatus as any)}</span>
                                 </div>
 
                                 {/* Reassignment selector dropdown */}

@@ -31,12 +31,10 @@ CREATE TABLE IF NOT EXISTS members (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     member_id TEXT NOT NULL UNIQUE,
     full_name TEXT NOT NULL,
+    father_name TEXT,
     photo_url TEXT,
     mobile_number TEXT NOT NULL,
     whatsapp_number TEXT,
-    address TEXT,
-    ward_unit TEXT,
-    age_category TEXT NOT NULL CHECK (age_category IN ('child', 'youth', 'middle', 'senior')),
     occupation TEXT,
     blood_group TEXT,
     org_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
@@ -49,7 +47,7 @@ CREATE TABLE IF NOT EXISTS members (
 CREATE INDEX IF NOT EXISTS idx_members_org_id ON members(org_id);
 CREATE INDEX IF NOT EXISTS idx_members_status ON members(status);
 CREATE INDEX IF NOT EXISTS idx_members_location ON members(location_status);
-CREATE INDEX IF NOT EXISTS idx_members_ward ON members(ward_unit);
+CREATE INDEX IF NOT EXISTS idx_members_father_name ON members(father_name);
 
 -- 4. Programs Table
 CREATE TABLE IF NOT EXISTS programs (

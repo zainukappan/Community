@@ -21,8 +21,6 @@ export default function MemberManagement() {
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
   const [filterOrg, setFilterOrg] = useState('');
-  const [filterWard, setFilterWard] = useState('');
-  const [filterAge, setFilterAge] = useState('');
   const [filterLocation, setFilterLocation] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
 
@@ -33,12 +31,10 @@ export default function MemberManagement() {
 
   // Form Fields
   const [fullName, setFullName] = useState('');
+  const [fatherName, setFatherName] = useState('');
   const [memberId, setMemberId] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
   const [whatsappNumber, setWhatsappNumber] = useState('');
-  const [address, setAddress] = useState('');
-  const [wardUnit, setWardUnit] = useState('');
-  const [ageCategory, setAgeCategory] = useState<'child' | 'youth' | 'middle' | 'senior'>('youth');
   const [occupation, setOccupation] = useState('');
   const [bloodGroup, setBloodGroup] = useState('');
   const [memberOrgId, setMemberOrgId] = useState('');
@@ -173,12 +169,10 @@ export default function MemberManagement() {
   const openEdit = (member: Member) => {
     setEditingMember(member);
     setFullName(member.fullName);
+    setFatherName(member.fatherName || '');
     setMemberId(member.memberId);
     setMobileNumber(member.mobileNumber);
     setWhatsappNumber(member.whatsappNumber || '');
-    setAddress(member.address || '');
-    setWardUnit(member.wardUnit || '');
-    setAgeCategory(member.ageCategory);
     setOccupation(member.occupation || '');
     setBloodGroup(member.bloodGroup || '');
     setMemberOrgId(member.orgId);
@@ -191,13 +185,11 @@ export default function MemberManagement() {
   const clearForm = () => {
     setEditingMember(null);
     setFullName('');
+    setFatherName('');
     // Auto-generate a dummy member ID for convenience if adding
     setMemberId(`${user.role === 'super_admin' ? 'ORG' : (orgs.find(o => o.id === user.orgId)?.slug.substring(0, 3).toUpperCase() || 'MEM')}-${Date.now().toString().slice(-4)}`);
     setMobileNumber('');
     setWhatsappNumber('');
-    setAddress('');
-    setWardUnit('');
-    setAgeCategory('youth');
     setOccupation('');
     setBloodGroup('');
     setMemberOrgId(user.role === 'super_admin' ? '' : (user.orgId || ''));
@@ -221,11 +213,9 @@ export default function MemberManagement() {
       id: editingMember ? editingMember.id : `member-${Date.now()}`,
       memberId,
       fullName,
+      fatherName,
       mobileNumber,
       whatsappNumber: whatsappNumber || mobileNumber,
-      address,
-      wardUnit,
-      ageCategory,
       occupation,
       bloodGroup,
       orgId: targetOrgId,
@@ -277,32 +267,25 @@ export default function MemberManagement() {
     // Search
     const matchesSearch = 
       m.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (m.fatherName && m.fatherName.toLowerCase().includes(searchQuery.toLowerCase())) ||
       m.memberId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.mobileNumber.includes(searchQuery) ||
-      (m.wardUnit && m.wardUnit.toLowerCase().includes(searchQuery.toLowerCase()));
+      m.mobileNumber.includes(searchQuery);
 
     // Organization tab filter
     const matchesOrg = activeOrgTab ? m.orgId === activeOrgTab : true;
-    // Ward filter
-    const matchesWard = filterWard ? m.wardUnit === filterWard : true;
-    // Age filter
-    const matchesAge = filterAge ? m.ageCategory === filterAge : true;
     // Location filter
     const matchesLocation = filterLocation ? m.locationStatus === filterLocation : true;
     // Status filter
     const matchesStatus = filterStatus ? m.status === filterStatus : true;
 
-    return matchesSearch && matchesOrg && matchesWard && matchesAge && matchesLocation && matchesStatus;
+    return matchesSearch && matchesOrg && matchesLocation && matchesStatus;
   });
-
-  // Extract unique Wards for filter list
-  const uniqueWards = Array.from(new Set(members.map(m => m.wardUnit).filter(Boolean)));
 
   // Export CSV
   const handleExportCSV = () => {
-    const headers = 'Member ID,Full Name,Mobile,WhatsApp,Address,Ward/Unit,Age Category,Occupation,Blood Group,Location Status,Status\n';
+    const headers = 'Member ID,Full Name,Father Name,Mobile,WhatsApp,Occupation,Blood Group,Location Status,Status\n';
     const rows = filteredMembers.map(m => 
-      `"${m.memberId}","${m.fullName}","${m.mobileNumber}","${m.whatsappNumber || ''}","${m.address || ''}","${m.wardUnit || ''}","${m.ageCategory}","${m.occupation || ''}","${m.bloodGroup || ''}","${m.locationStatus}","${m.status}"`
+      `"${m.memberId}","${m.fullName}","${m.fatherName || ''}","${m.mobileNumber}","${m.whatsappNumber || ''}","${m.occupation || ''}","${m.bloodGroup || ''}","${m.locationStatus}","${m.status}"`
     ).join('\n');
 
     const blob = new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' });
@@ -326,29 +309,28 @@ export default function MemberManagement() {
 
         // Simple CSV splitter (handles basic quoted comma values)
         const parts = line.split(',').map(p => p.trim().replace(/^"|"$/g, ''));
-        if (parts.length < 3) return; // Need at least MemberID, Name, Mobile
+        if (parts.length < 4) return; // Need at least MemberID, Name, FatherName, Mobile
 
         const mId = parts[0] || `MEM-${Math.random().toString().slice(-4)}`;
         const fName = parts[1];
-        const mob = parts[2];
+        const father = parts[2];
+        const mob = parts[3];
         
         if (!fName || !mob) return;
 
-        const targetOrgId = user.role === 'super_admin' ? (parts[10] || orgs[0]?.id) : (user.orgId || '');
+        const targetOrgId = user.role === 'super_admin' ? (parts[8] || orgs[0]?.id) : (user.orgId || '');
 
         const newMem: Member = {
           id: `member-csv-${Date.now()}-${index}`,
           memberId: mId,
           fullName: fName,
+          fatherName: father || '',
           mobileNumber: mob,
-          whatsappNumber: parts[3] || mob,
-          address: parts[4] || '',
-          wardUnit: parts[5] || 'Ward 01',
-          ageCategory: (parts[6] as any) || 'youth',
-          occupation: parts[7] || '',
-          bloodGroup: parts[8] || 'O+',
+          whatsappNumber: parts[4] || mob,
+          occupation: parts[5] || '',
+          bloodGroup: parts[6] || 'O+',
           orgId: targetOrgId,
-          locationStatus: (parts[9] as any) || 'local',
+          locationStatus: (parts[7] as any) || 'local',
           status: 'active'
         };
 
@@ -364,7 +346,7 @@ export default function MemberManagement() {
       triggerAutoSync();
       return true;
     } catch (err) {
-      setImportError('Failed to parse CSV. Please ensure formatting matches exactly: MemberID, FullName, MobileNumber, WhatsAppNumber, Address, WardUnit, AgeCategory, Occupation, BloodGroup, LocationStatus');
+      setImportError('Failed to parse CSV. Please ensure formatting matches exactly: MemberID, FullName, FatherName, MobileNumber, WhatsAppNumber, Occupation, BloodGroup, LocationStatus');
       return false;
     }
   };
@@ -521,37 +503,7 @@ export default function MemberManagement() {
             />
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-semibold text-slate-600">
-
-            {/* Ward Filter */}
-            <div>
-              <select
-                value={filterWard}
-                onChange={(e) => setFilterWard(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 outline-none font-normal"
-              >
-                <option value="">All Wards/Units</option>
-                {uniqueWards.map(w => (
-                  <option key={w} value={w}>{w}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Age Filter */}
-            <div>
-              <select
-                value={filterAge}
-                onChange={(e) => setFilterAge(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 outline-none font-normal"
-              >
-                <option value="">All Ages</option>
-                <option value="child">{t('child')}</option>
-                <option value="youth">{t('youth')}</option>
-                <option value="middle">{t('middle')}</option>
-                <option value="senior">{t('senior')}</option>
-              </select>
-            </div>
-
+          <div className="grid grid-cols-2 gap-2 text-[11px] font-semibold text-slate-600">
             {/* Location Status Filter */}
             <div>
               <select
@@ -597,8 +549,8 @@ export default function MemberManagement() {
                     <tr>
                       <th className="px-6 py-4">ID</th>
                       <th className="px-6 py-4">Name</th>
-                      <th className="px-6 py-4">Ward / Unit</th>
-                      <th className="px-6 py-4">Age / Location</th>
+                      <th className="px-6 py-4">Father Name</th>
+                      <th className="px-6 py-4">Location</th>
                       <th className="px-6 py-4">Contact</th>
                       <th className="px-6 py-4">Blood</th>
                       <th className="px-6 py-4">Status</th>
@@ -610,12 +562,12 @@ export default function MemberManagement() {
                       <tr key={member.id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="px-6 py-3 whitespace-nowrap font-mono font-bold text-slate-800">{member.memberId}</td>
                         <td className="px-6 py-3 whitespace-nowrap font-bold text-slate-900">{member.fullName}</td>
-                        <td className="px-6 py-3 whitespace-nowrap font-medium">{member.wardUnit || '---'}</td>
+                        <td className="px-6 py-3 whitespace-nowrap font-medium text-slate-700">{member.fatherName || '---'}</td>
                         <td className="px-6 py-3 whitespace-nowrap font-medium">
-                          <span className="capitalize">{member.ageCategory}</span> / <span className="text-emerald-800 font-semibold">{t(member.locationStatus as any)}</span>
+                          <span className="text-emerald-800 font-semibold">{t(member.locationStatus as any)}</span>
                         </td>
                         <td className="px-6 py-3 whitespace-nowrap font-mono text-slate-500">{member.mobileNumber}</td>
-                        <td className="px-6 py-3 whitespace-nowrap font-bold text-red-600">{member.bloodGroup || '---'}</td>
+                        <td className="px-6 py-3 whitespace-nowrap font-bold text-red-650">{member.bloodGroup || '---'}</td>
                         <td className="px-6 py-3 whitespace-nowrap">
                           <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                             member.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'
@@ -659,7 +611,7 @@ export default function MemberManagement() {
                         </span>
                         <h4 className="font-bold text-sm text-slate-800 pt-1">{member.fullName}</h4>
                         <p className="text-[10px] text-slate-500 font-medium">
-                          🏡 {member.wardUnit || 'No Ward'} • 🩸 <span className="text-red-600 font-bold">{member.bloodGroup || 'N/A'}</span>
+                          👨 {member.fatherName || '---'} • 🩸 <span className="text-red-650 font-bold">{member.bloodGroup || 'N/A'}</span>
                         </p>
                       </div>
 
@@ -671,7 +623,7 @@ export default function MemberManagement() {
                     </div>
 
                     <div className="flex justify-between items-center text-[10px] bg-white p-2 rounded-lg border border-slate-100 font-medium text-slate-600">
-                      <span>{t(member.locationStatus as any)} ({member.ageCategory})</span>
+                      <span>{t(member.locationStatus as any)}</span>
                       <span className="font-mono text-slate-500">📞 {member.mobileNumber}</span>
                     </div>
 
@@ -721,8 +673,8 @@ export default function MemberManagement() {
                       required
                       value={memberId} 
                       onChange={(e) => setMemberId(e.target.value)}
-                      placeholder="e.g. KMJ-001"
-                      className="w-full border border-slate-300 bg-slate-50 rounded-xl p-3 outline-none focus:border-emerald-700 focus:bg-white font-mono font-normal"
+                      placeholder="e.g. KMJ-101"
+                      className="w-full border border-slate-300 bg-slate-50 rounded-xl p-3 outline-none focus:border-emerald-700 focus:bg-white font-mono font-bold"
                     />
                   </div>
 
@@ -736,6 +688,38 @@ export default function MemberManagement() {
                       placeholder="e.g. Muhammed Ali"
                       className="w-full border border-slate-300 bg-slate-50 rounded-xl p-3 outline-none focus:border-emerald-700 focus:bg-white font-normal"
                     />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-slate-500 mb-1">Father Name</label>
+                    <input 
+                      type="text" 
+                      value={fatherName} 
+                      onChange={(e) => setFatherName(e.target.value)}
+                      placeholder="e.g. Abdullah K."
+                      className="w-full border border-slate-300 bg-slate-50 rounded-xl p-3 outline-none focus:border-emerald-700 focus:bg-white font-normal"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-500 mb-1">Blood Group</label>
+                    <select
+                      value={bloodGroup}
+                      onChange={(e) => setBloodGroup(e.target.value)}
+                      className="w-full border border-slate-300 bg-slate-50 rounded-xl p-3 outline-none focus:border-emerald-700 focus:bg-white font-normal"
+                    >
+                      <option value="">Select</option>
+                      <option value="A+">A+</option>
+                      <option value="A-">A-</option>
+                      <option value="B+">B+</option>
+                      <option value="B-">B-</option>
+                      <option value="O+">O+</option>
+                      <option value="O-">O-</option>
+                      <option value="AB+">AB+</option>
+                      <option value="AB-">AB-</option>
+                    </select>
                   </div>
                 </div>
 
@@ -761,63 +745,6 @@ export default function MemberManagement() {
                       placeholder="e.g. +91 9876543210"
                       className="w-full border border-slate-300 bg-slate-50 rounded-xl p-3 outline-none focus:border-emerald-700 focus:bg-white font-mono font-normal"
                     />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-slate-500 mb-1">Address</label>
-                  <textarea 
-                    value={address} 
-                    onChange={(e) => setAddress(e.target.value)}
-                    placeholder="Residential address details..."
-                    rows={2}
-                    className="w-full border border-slate-300 bg-slate-50 rounded-xl p-3 outline-none focus:border-emerald-700 focus:bg-white font-normal"
-                  />
-                </div>
-
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-slate-500 mb-1">Ward / Unit</label>
-                    <input 
-                      type="text" 
-                      value={wardUnit} 
-                      onChange={(e) => setWardUnit(e.target.value)}
-                      placeholder="e.g. Ward 02"
-                      className="w-full border border-slate-300 bg-slate-50 rounded-xl p-3 outline-none focus:border-emerald-700 focus:bg-white font-normal"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-slate-500 mb-1">Blood Group</label>
-                    <select
-                      value={bloodGroup}
-                      onChange={(e) => setBloodGroup(e.target.value)}
-                      className="w-full border border-slate-300 bg-slate-50 rounded-xl p-3 outline-none focus:border-emerald-700 focus:bg-white font-normal"
-                    >
-                      <option value="">Select</option>
-                      <option value="A+">A+</option>
-                      <option value="A-">A-</option>
-                      <option value="B+">B+</option>
-                      <option value="B-">B-</option>
-                      <option value="O+">O+</option>
-                      <option value="O-">O-</option>
-                      <option value="AB+">AB+</option>
-                      <option value="AB-">AB-</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-slate-500 mb-1">Age Category</label>
-                    <select
-                      value={ageCategory}
-                      onChange={(e) => setAgeCategory(e.target.value as any)}
-                      className="w-full border border-slate-300 bg-slate-50 rounded-xl p-3 outline-none focus:border-emerald-700 focus:bg-white font-normal"
-                    >
-                      <option value="child">Child (Under 15)</option>
-                      <option value="youth">Youth (15 - 35)</option>
-                      <option value="middle">Middle Age (36 - 60)</option>
-                      <option value="senior">Senior (Above 60)</option>
-                    </select>
                   </div>
                 </div>
 
@@ -954,11 +881,9 @@ export default function MemberManagement() {
                 <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-150 text-[11px] text-emerald-800 space-y-1.5 font-normal leading-relaxed">
                   <p className="font-bold text-emerald-900">Required Columns Structure:</p>
                   <p className="font-mono text-[10px] bg-white/60 p-1.5 rounded border border-emerald-100 select-all">
-                    MemberID, FullName, MobileNumber, WhatsAppNumber, Address, WardUnit, AgeCategory, Occupation, BloodGroup, LocationStatus
+                    MemberID, FullName, FatherName, MobileNumber, WhatsAppNumber, Occupation, BloodGroup, LocationStatus
                   </p>
                   <p className="text-[10px] text-slate-500">
-                    * Values for AgeCategory: <code className="bg-emerald-100 px-1 rounded text-emerald-900 font-bold">child</code>, <code className="bg-emerald-100 px-1 rounded text-emerald-900 font-bold">youth</code>, <code className="bg-emerald-100 px-1 rounded text-emerald-900 font-bold">middle</code>, <code className="bg-emerald-100 px-1 rounded text-emerald-900 font-bold">senior</code>.
-                    <br />
                     * Values for LocationStatus: <code className="bg-emerald-100 px-1 rounded text-emerald-900 font-bold">local</code>, <code className="bg-emerald-100 px-1 rounded text-emerald-900 font-bold">expatriate</code>, <code className="bg-emerald-100 px-1 rounded text-emerald-900 font-bold">studying_outside</code>, <code className="bg-emerald-100 px-1 rounded text-emerald-900 font-bold">working_outside</code>.
                   </p>
                 </div>
@@ -972,7 +897,7 @@ export default function MemberManagement() {
                         value={csvText} 
                         required
                         onChange={(e) => setCsvText(e.target.value)}
-                        placeholder="KMJ-101,Ahammed Kabir,+91 9995551212,+91 9995551212,Valley Green,Ward 01,youth,Business,O+,expatriate"
+                        placeholder="KMJ-101,Ahammed Kabir,Father Name,+91 9995551212,+91 9995551212,Business,O+,expatriate"
                         rows={6}
                         className="w-full border border-slate-300 bg-slate-50 rounded-xl p-3 outline-none focus:border-emerald-700 focus:bg-white font-mono font-normal text-[11px]"
                       />
@@ -1100,7 +1025,7 @@ export default function MemberManagement() {
       sheet.clearContents();
       
       // Set headers
-      var headers = ["MemberID", "FullName", "MobileNumber", "WhatsAppNumber", "Address", "WardUnit", "AgeCategory", "Occupation", "BloodGroup", "LocationStatus"];
+      var headers = ["MemberID", "FullName", "FatherName", "MobileNumber", "WhatsAppNumber", "Occupation", "BloodGroup", "LocationStatus"];
       sheet.appendRow(headers);
       
       var groupMembers = orgGroups[orgName];
@@ -1109,11 +1034,9 @@ export default function MemberManagement() {
         sheet.appendRow([
           mem.memberId,
           mem.fullName,
+          mem.fatherName || "",
           mem.mobileNumber,
           mem.whatsappNumber || "",
-          mem.address || "",
-          mem.wardUnit || "",
-          mem.ageCategory,
           mem.occupation || "",
           mem.bloodGroup || "",
           mem.locationStatus

@@ -25,12 +25,10 @@ export interface Member {
   id: string;
   memberId: string; // e.g. KMJ-001
   fullName: string;
+  fatherName?: string;
   photoUrl?: string;
   mobileNumber: string;
   whatsappNumber?: string;
-  address?: string;
-  wardUnit?: string;
-  ageCategory: 'child' | 'youth' | 'middle' | 'senior';
   occupation?: string;
   bloodGroup?: string;
   orgId: string;

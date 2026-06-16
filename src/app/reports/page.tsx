@@ -76,13 +76,7 @@ export default function ReportsPage() {
     );
   }
 
-  // Calculate demographics breakdown
-  const ageStats = {
-    child: members.filter(m => m.ageCategory === 'child').length,
-    youth: members.filter(m => m.ageCategory === 'youth').length,
-    middle: members.filter(m => m.ageCategory === 'middle').length,
-    senior: members.filter(m => m.ageCategory === 'senior').length,
-  };
+
 
   const locStats = {
     local: members.filter(m => m.locationStatus === 'local').length,
@@ -109,10 +103,10 @@ export default function ReportsPage() {
   };
 
   const exportMemberReport = () => {
-    const headers = 'Member ID,Full Name,Mobile,WhatsApp,Address,Ward/Unit,Age Category,Occupation,Blood Group,Location Status,Status,Organization\n';
+    const headers = 'Member ID,Full Name,Father Name,Mobile,WhatsApp,Occupation,Blood Group,Location Status,Status,Organization\n';
     const rows = members.map(m => {
       const orgName = orgs.find(o => o.id === m.orgId)?.name || '';
-      return `"${m.memberId}","${m.fullName}","${m.mobileNumber}","${m.whatsappNumber || ''}","${m.address || ''}","${m.wardUnit || ''}","${m.ageCategory}","${m.occupation || ''}","${m.bloodGroup || ''}","${m.locationStatus}","${m.status}","${orgName}"`;
+      return `"${m.memberId}","${m.fullName}","${m.fatherName || ''}","${m.mobileNumber}","${m.whatsappNumber || ''}","${m.occupation || ''}","${m.bloodGroup || ''}","${m.locationStatus}","${m.status}","${orgName}"`;
     }).join('\n');
 
     downloadCSV(headers + rows, 'member_demographics_report');
@@ -218,18 +212,7 @@ export default function ReportsPage() {
                 </button>
               </div>
 
-              <div className="grid gap-6 sm:grid-cols-3">
-                {/* Age categories card */}
-                <div className="bg-slate-50 border border-slate-200/80 p-4 rounded-xl space-y-3">
-                  <h4 className="text-xs font-bold text-slate-700 uppercase border-b border-slate-200 pb-1.5">Age Demographics</h4>
-                  <div className="space-y-2 text-xs font-semibold text-slate-600">
-                    <div className="flex justify-between"><span>Youth (15 - 35)</span><span className="font-bold text-slate-800">{ageStats.youth}</span></div>
-                    <div className="flex justify-between"><span>Middle Age (36 - 60)</span><span className="font-bold text-slate-800">{ageStats.middle}</span></div>
-                    <div className="flex justify-between"><span>Senior Citizens (60+)</span><span className="font-bold text-slate-800">{ageStats.senior}</span></div>
-                    <div className="flex justify-between"><span>Children (Under 15)</span><span className="font-bold text-slate-800">{ageStats.child}</span></div>
-                  </div>
-                </div>
-
+              <div className="grid gap-6 sm:grid-cols-2">
                 {/* Location status card */}
                 <div className="bg-slate-50 border border-slate-200/80 p-4 rounded-xl space-y-3">
                   <h4 className="text-xs font-bold text-slate-700 uppercase border-b border-slate-200 pb-1.5">Location Registry</h4>

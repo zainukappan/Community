@@ -58,6 +58,9 @@ export default function MemberManagement() {
   const [appsScriptUrl, setAppsScriptUrl] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
 
+  // Active Organization Tab (Visible to Super Admin)
+  const [activeOrgTab, setActiveOrgTab] = useState('');
+
   useEffect(() => {
     const savedUrl = localStorage.getItem('apps_script_url') || '';
     setAppsScriptUrl(savedUrl);
@@ -74,8 +77,14 @@ export default function MemberManagement() {
     localStorage.setItem('apps_script_url', appsScriptUrl.trim());
 
     try {
-      // Sync members based on current view/filters
-      const dataToSync = filteredMembers;
+      // Sync all loaded members mapped with organization names for worksheet splitting
+      const dataToSync = members.map(m => {
+        const org = orgs.find(o => o.id === m.orgId);
+        return {
+          ...m,
+          orgName: org ? org.name : 'General'
+        };
+      });
 
       await fetch(appsScriptUrl.trim(), {
         method: 'POST',
@@ -86,7 +95,7 @@ export default function MemberManagement() {
         body: JSON.stringify(dataToSync),
       });
 
-      alert(`Sync request sent! Google Sheet should update shortly with ${dataToSync.length} member records.`);
+      alert(`Sync request sent! Google Sheet should update and create separate worksheets shortly.`);
       setIsSyncModalOpen(false);
     } catch (err) {
       console.error(err);
@@ -104,9 +113,14 @@ export default function MemberManagement() {
 
     if (user.role === 'super_admin') {
       setMembers(allMembers);
+      // Auto-prefill the first tab if not set
+      if (allOrgs.length > 0 && !activeOrgTab) {
+        setActiveOrgTab(allOrgs[0].id);
+      }
     } else {
       const orgId = user.orgId || '';
       setMembers(allMembers.filter(m => m.orgId === orgId));
+      setActiveOrgTab(orgId); // Lock tab to user org
       setFilterOrg(orgId); // Lock filter for non-superadmin
     }
   };
@@ -204,8 +218,8 @@ export default function MemberManagement() {
       m.mobileNumber.includes(searchQuery) ||
       (m.wardUnit && m.wardUnit.toLowerCase().includes(searchQuery.toLowerCase()));
 
-    // Organization filter
-    const matchesOrg = filterOrg ? m.orgId === filterOrg : true;
+    // Organization tab filter
+    const matchesOrg = activeOrgTab ? m.orgId === activeOrgTab : true;
     // Ward filter
     const matchesWard = filterWard ? m.wardUnit === filterWard : true;
     // Age filter
@@ -384,6 +398,36 @@ export default function MemberManagement() {
           )}
         </div>
 
+        {/* Organization Tabs (Visible to Super Admin) */}
+        {user.role === 'super_admin' && (
+          <div className="flex border-b border-slate-200 text-xs font-bold text-slate-500 gap-2 overflow-x-auto pb-1.5 max-w-full">
+            {orgs.map((org) => {
+              const isSelected = activeOrgTab === org.id;
+              const orgMemberCount = members.filter(m => m.orgId === org.id).length;
+              return (
+                <button
+                  key={org.id}
+                  type="button"
+                  onClick={() => setActiveOrgTab(org.id)}
+                  className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl transition-all whitespace-nowrap cursor-pointer shrink-0 border ${
+                    isSelected
+                      ? 'bg-emerald-850 text-white border-emerald-900 font-extrabold shadow-sm shadow-emerald-800/10'
+                      : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800'
+                  }`}
+                >
+                  <span className={`w-2 h-2 rounded-full ${isSelected ? 'bg-amber-400' : ''}`} style={isSelected ? {} : { backgroundColor: org.themeColor }} />
+                  <span>{org.name}</span>
+                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${
+                    isSelected ? 'bg-emerald-950 text-emerald-100 font-bold' : 'bg-slate-100 text-slate-500'
+                  }`}>
+                    {orgMemberCount}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         {/* Search & Filter Bar */}
         <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-3">
           <div className="relative">
@@ -397,21 +441,7 @@ export default function MemberManagement() {
             />
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-[11px] font-semibold text-slate-600">
-            {/* Org Filter (Super Admin only) */}
-            <div>
-              <select
-                value={filterOrg}
-                disabled={user.role !== 'super_admin'}
-                onChange={(e) => setFilterOrg(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 outline-none font-normal"
-              >
-                <option value="">All Organizations</option>
-                {orgs.map(o => (
-                  <option key={o.id} value={o.id}>{o.name}</option>
-                ))}
-              </select>
-            </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-semibold text-slate-600">
 
             {/* Ward Filter */}
             <div>
@@ -966,29 +996,51 @@ export default function MemberManagement() {
 {`function doPost(e) {
   try {
     var data = JSON.parse(e.postData.contents);
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-    sheet.clearContents();
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
     
-    // Set headers
-    var headers = ["MemberID", "FullName", "MobileNumber", "WhatsAppNumber", "Address", "WardUnit", "AgeCategory", "Occupation", "BloodGroup", "LocationStatus"];
-    sheet.appendRow(headers);
-    
+    // Group members by organization name
+    var orgGroups = {};
     for (var i = 0; i < data.length; i++) {
       var m = data[i];
-      sheet.appendRow([
-        m.memberId,
-        m.fullName,
-        m.mobileNumber,
-        m.whatsappNumber || "",
-        m.address || "",
-        m.wardUnit || "",
-        m.ageCategory,
-        m.occupation || "",
-        m.bloodGroup || "",
-        m.locationStatus
-      ]);
+      var orgName = m.orgName || "General";
+      if (!orgGroups[orgName]) {
+        orgGroups[orgName] = [];
+      }
+      orgGroups[orgName].push(m);
     }
-    return ContentService.createTextOutput(JSON.stringify({ status: "success", count: data.length }))
+    
+    // Write each organization group to its respective worksheet
+    for (var orgName in orgGroups) {
+      // Limit worksheet name length to Google Sheets limit of 30 characters if necessary
+      var sheetName = orgName.substring(0, 30);
+      var sheet = ss.getSheetByName(sheetName);
+      if (!sheet) {
+        sheet = ss.insertSheet(sheetName);
+      }
+      sheet.clearContents();
+      
+      // Set headers
+      var headers = ["MemberID", "FullName", "MobileNumber", "WhatsAppNumber", "Address", "WardUnit", "AgeCategory", "Occupation", "BloodGroup", "LocationStatus"];
+      sheet.appendRow(headers);
+      
+      var groupMembers = orgGroups[orgName];
+      for (var j = 0; j < groupMembers.length; j++) {
+        var mem = groupMembers[j];
+        sheet.appendRow([
+          mem.memberId,
+          mem.fullName,
+          mem.mobileNumber,
+          mem.whatsappNumber || "",
+          mem.address || "",
+          mem.wardUnit || "",
+          mem.ageCategory,
+          mem.occupation || "",
+          mem.bloodGroup || "",
+          mem.locationStatus
+        ]);
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify({ status: "success" }))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (error) {
     return ContentService.createTextOutput(JSON.stringify({ status: "error", message: error.toString() }))

@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useLocale } from '@/lib/locale';
 import { db, Organization, Member, Program, CallAssignment } from '@/lib/db';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { 
   Building, 
   Users, 
@@ -22,6 +23,13 @@ import {
 export default function Dashboard() {
   const { user } = useAuth();
   const { t } = useLocale();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!user) {
+      router.push('/auth/login');
+    }
+  }, [user, router]);
 
   const [orgs, setOrgs] = useState<Organization[]>([]);
   const [members, setMembers] = useState<Member[]>([]);

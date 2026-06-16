@@ -411,7 +411,7 @@ export default function MemberManagement() {
                   onClick={() => setActiveOrgTab(org.id)}
                   className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl transition-all whitespace-nowrap cursor-pointer shrink-0 border ${
                     isSelected
-                      ? 'bg-emerald-850 text-white border-emerald-900 font-extrabold shadow-sm shadow-emerald-800/10'
+                      ? 'bg-emerald-800 text-white border-emerald-900 font-extrabold shadow-sm shadow-emerald-800/10'
                       : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800'
                   }`}
                 >

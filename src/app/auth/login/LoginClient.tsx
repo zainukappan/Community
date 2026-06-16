@@ -35,19 +35,6 @@ export default function LoginClient() {
     }
   };
 
-  const handleQuickLogin = (quickEmail: string) => {
-    const success = login(quickEmail);
-    if (!success) {
-      setError('Failed to login with quick account.');
-    }
-  };
-
-  const demoAccounts = [
-    { label: 'Super Admin', email: 'superadmin@org.com', desc: 'Manage all organizations' },
-    { label: 'KMJ Admin', email: 'kmjadmin@org.com', desc: 'Manage Kerala Muslim Jamaath' },
-    { label: 'KMJ Bearer', email: 'jamal@org.com', desc: 'Office Bearer (Caller)' },
-    { label: 'KMJ Exec', email: 'salim@org.com', desc: 'Executive Member (Caller)' },
-  ];
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-slate-100 px-4 py-12 sm:px-6 lg:px-8">
@@ -150,27 +137,6 @@ export default function LoginClient() {
             </div>
           </form>
 
-          {/* Quick Demo Login Panel */}
-          <div className="bg-slate-50 border-t border-slate-200/60 p-6 space-y-3">
-            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider text-center">
-              Quick Login (Demo Accounts)
-            </h4>
-            <div className="grid grid-cols-2 gap-2">
-              {demoAccounts.map((account) => (
-                <button
-                  key={account.email}
-                  type="button"
-                  onClick={() => handleQuickLogin(account.email)}
-                  className="flex flex-col items-center justify-center p-2.5 bg-white hover:bg-emerald-50 rounded-xl border border-slate-200 hover:border-emerald-300 transition-all text-left shadow-sm cursor-pointer"
-                >
-                  <span className="text-xs font-bold text-slate-800">{account.label}</span>
-                  <span className="text-[9px] text-slate-400 truncate w-full text-center">
-                    {account.email}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
     </div>

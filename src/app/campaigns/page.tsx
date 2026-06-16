@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import AppShell from '@/components/AppShell';
 import { useAuth } from '@/context/AuthContext';
 import { useLocale } from '@/lib/locale';
-import { db, Program, Member, Profile, CallAssignment } from '@/lib/db';
+import { db, Program, Member, Profile, CallAssignment, useLocalDBSync } from '@/lib/db';
 import { 
   PhoneCall, Play, Users, RefreshCw, ChevronDown, ChevronUp, 
   Trash, Save, ArrowRight, UserCheck, ShieldAlert, Award, Grid
@@ -18,6 +18,7 @@ interface CallerDistribution {
 export default function CampaignsPage() {
   const { user } = useAuth();
   const { t } = useLocale();
+  const syncVersion = useLocalDBSync();
 
   const [programs, setPrograms] = useState<Program[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
@@ -52,7 +53,7 @@ export default function CampaignsPage() {
     } else {
       setPrograms(allProgs.filter(p => p.orgId === user.orgId && p.status !== 'completed'));
     }
-  }, [user]);
+  }, [user, syncVersion]);
 
   // Load members and callers when program is selected
   useEffect(() => {
@@ -78,7 +79,7 @@ export default function CampaignsPage() {
     // Auto-select all callers initially as a convenience
     setSelectedCallerIds(eligibleCallers.map(c => c.id));
     setDistribution([]);
-  }, [selectedProgramId]);
+  }, [selectedProgramId, syncVersion]);
 
   if (!user) return null;
 

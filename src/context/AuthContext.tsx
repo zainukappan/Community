@@ -19,11 +19,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const router = useRouter();
 
   useEffect(() => {
+    // 1. Initial load from local cache
     const savedUser = localStorage.getItem('auth_user');
     if (savedUser) {
       try {
         const parsed = JSON.parse(savedUser);
-        // Sync with db profiles in case profiles was updated
         const profiles = db.getProfiles();
         const activeProfile = profiles.find(p => p.id === parsed.id && p.status === 'active');
         if (activeProfile) {
@@ -36,6 +36,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
     setIsLoading(false);
+
+    // 2. Perform background sync from Supabase
+    if (db.isSyncEnabled()) {
+      db.syncFromSupabase().then(() => {
+        const updatedSavedUser = localStorage.getItem('auth_user');
+        if (updatedSavedUser) {
+          try {
+            const parsed = JSON.parse(updatedSavedUser);
+            const profiles = db.getProfiles();
+            const activeProfile = profiles.find(p => p.id === parsed.id && p.status === 'active');
+            if (activeProfile) {
+              setUser(activeProfile);
+            } else {
+              setUser(null);
+              localStorage.removeItem('auth_user');
+            }
+          } catch (e) {
+            console.error('Failed to parse auth user after sync', e);
+          }
+        }
+      });
+    }
   }, []);
 
   const login = (email: string): boolean => {

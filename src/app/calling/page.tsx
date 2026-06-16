@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import AppShell from '@/components/AppShell';
 import { useAuth } from '@/context/AuthContext';
 import { useLocale } from '@/lib/locale';
-import { db, Program, Member, CallAssignment } from '@/lib/db';
+import { db, Program, Member, CallAssignment, useLocalDBSync } from '@/lib/db';
 import { 
   Phone, Search, ChevronRight, CheckCircle2, AlertCircle, Save, 
   HelpCircle, MessageSquare, Clipboard, Loader2, PhoneCall
@@ -20,6 +20,7 @@ interface AssignedMemberTask {
 export default function CallingPage() {
   const { user } = useAuth();
   const { t } = useLocale();
+  const syncVersion = useLocalDBSync();
 
   const [programs, setPrograms] = useState<Program[]>([]);
   const [selectedProgramId, setSelectedProgramId] = useState('');
@@ -58,9 +59,9 @@ export default function CallingPage() {
     setPrograms(activeProgs);
 
     if (activeProgs.length > 0) {
-      setSelectedProgramId(activeProgs[0].id);
+      setSelectedProgramId(prev => prev || activeProgs[0].id);
     }
-  }, [user]);
+  }, [user, syncVersion]);
 
   // Load tasks when program is selected
   useEffect(() => {
@@ -92,7 +93,7 @@ export default function CallingPage() {
       notesMap[t.assignmentId] = t.notes;
     });
     setEditingNotes(notesMap);
-  }, [selectedProgramId, user]);
+  }, [selectedProgramId, user, syncVersion]);
 
   if (!user) return null;
 

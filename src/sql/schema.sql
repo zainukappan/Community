@@ -82,9 +82,31 @@ CREATE INDEX IF NOT EXISTS idx_assignments_program ON call_assignments(program_i
 CREATE INDEX IF NOT EXISTS idx_assignments_caller ON call_assignments(caller_id);
 CREATE INDEX IF NOT EXISTS idx_assignments_status ON call_assignments(status);
 
+-- 6. Org Directory Entries Table (Custom Public Directory)
+CREATE TABLE IF NOT EXISTS org_directory_entries (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    org_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    member_id UUID REFERENCES members(id) ON DELETE CASCADE,
+    responsibility TEXT NOT NULL,
+    role_category TEXT CHECK (role_category IN ('office_bearer', 'executive')),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_dir_org ON org_directory_entries(org_id);
+
 -- Enable Row Level Security (RLS) on all tables (if deploying on Supabase)
 ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE programs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE call_assignments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE org_directory_entries ENABLE ROW LEVEL SECURITY;
+
+-- Create policies to allow public (anonymous) read and write operations
+-- Note: The application uses a mock authentication structure in AuthContext.tsx, which communicates with the Supabase client anonymously.
+CREATE POLICY "Allow public access" ON organizations FOR ALL TO public USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public access" ON profiles FOR ALL TO public USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public access" ON members FOR ALL TO public USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public access" ON programs FOR ALL TO public USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public access" ON call_assignments FOR ALL TO public USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public access" ON org_directory_entries FOR ALL TO public USING (true) WITH CHECK (true);

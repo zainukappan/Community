@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import AppShell from '@/components/AppShell';
 import { useAuth } from '@/context/AuthContext';
 import { useLocale } from '@/lib/locale';
-import { db, Organization, Member, Program, CallAssignment } from '@/lib/db';
+import { db, Organization, Member, Program, CallAssignment, useLocalDBSync } from '@/lib/db';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
@@ -24,6 +24,7 @@ export default function Dashboard() {
   const { user } = useAuth();
   const { t } = useLocale();
   const router = useRouter();
+  const syncVersion = useLocalDBSync();
 
   useEffect(() => {
     if (!user) {
@@ -59,7 +60,7 @@ export default function Dashboard() {
       const orgProgIds = allProgs.filter(p => p.orgId === orgId).map(p => p.id);
       setAssignments(allAssigns.filter(a => orgProgIds.includes(a.programId)));
     }
-  }, [user]);
+  }, [user, syncVersion]);
 
   if (!user) return null;
 

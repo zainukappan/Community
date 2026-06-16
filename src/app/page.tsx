@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { db, Organization, Profile } from '@/lib/db';
+import { db, Organization, Profile, useLocalDBSync } from '@/lib/db';
 import { useLocale } from '@/lib/locale';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
@@ -20,6 +20,7 @@ import {
 export default function PublicDirectory() {
   const { locale, setLocale, t } = useLocale();
   const { user } = useAuth();
+  const syncVersion = useLocalDBSync();
   
   const [orgs, setOrgs] = useState<Organization[]>([]);
   const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
@@ -29,7 +30,7 @@ export default function PublicDirectory() {
   // Load organizations
   useEffect(() => {
     setOrgs(db.getOrganizations().filter(o => o.status === 'active'));
-  }, []);
+  }, [syncVersion]);
 
   // Load bearers and executives when org is selected
   useEffect(() => {
@@ -86,7 +87,7 @@ export default function PublicDirectory() {
       setBearers([]);
       setExecutives([]);
     }
-  }, [selectedOrgId, locale]);
+  }, [selectedOrgId, locale, syncVersion]);
 
   const selectedOrg = orgs.find(o => o.id === selectedOrgId);
 

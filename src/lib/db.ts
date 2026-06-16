@@ -1,4 +1,5 @@
 // Database Wrapper & Mock State Engine for Community Organization Management System
+import { supabase } from './supabaseClient';
 
 export interface Organization {
   id: string;
@@ -296,6 +297,26 @@ const initialPrograms = (): Program[] => {
 
 const initialAssignments: CallAssignment[] = [];
 
+// Helper functions to map database fields from camelCase to snake_case and vice-versa
+const toCamel = (str: string) => str.replace(/([-_][a-z])/g, group => group.toUpperCase().replace('-', '').replace('_', ''));
+const toSnake = (str: string) => str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+
+function mapKeys(obj: any, transform: (s: string) => string): any {
+  if (obj === null || obj === undefined) return obj;
+  if (Array.isArray(obj)) return obj.map(item => mapKeys(item, transform));
+  if (typeof obj === 'object') {
+    const n: any = {};
+    Object.keys(obj).forEach(k => {
+      n[transform(k)] = mapKeys(obj[k], transform);
+    });
+    return n;
+  }
+  return obj;
+}
+
+const mapToCamel = (obj: any) => mapKeys(obj, toCamel);
+const mapToSnake = (obj: any) => mapKeys(obj, toSnake);
+
 // Storage Manager
 class LocalDB {
   private isBrowser: boolean;
@@ -328,6 +349,103 @@ class LocalDB {
     }
   }
 
+  // Sync Methods
+  isSyncEnabled(): boolean {
+    return !!supabase;
+  }
+
+  async syncFromSupabase() {
+    if (!this.isBrowser) return;
+    if (!supabase) {
+      console.warn("Supabase client is not initialized. Running in local-only mode.");
+      return;
+    }
+
+    try {
+      console.log("Starting sync with Supabase...");
+      // Check if remote organizations table is empty
+      const { data: remoteOrgs, error: orgsError } = await supabase
+        .from('organizations')
+        .select('id')
+        .limit(1);
+
+      if (orgsError) {
+        console.error("Failed to fetch from Supabase:", orgsError);
+        return;
+      }
+
+      if (!remoteOrgs || remoteOrgs.length === 0) {
+        console.log("Supabase database is empty. Uploading local cache as seeds...");
+        await this.seedRemoteSupabase();
+      } else {
+        console.log("Supabase database has data. Downloading to localStorage...");
+        await this.downloadFromSupabase();
+      }
+
+      // Notify listening components that data has synced
+      window.dispatchEvent(new CustomEvent('localdb-sync-complete'));
+      console.log("Sync complete!");
+    } catch (err) {
+      console.error("Error during Supabase sync:", err);
+    }
+  }
+
+  private async seedRemoteSupabase() {
+    if (!supabase) return;
+
+    const tables = [
+      { name: 'organizations', data: this.getOrganizations() },
+      { name: 'profiles', data: this.getProfiles() },
+      { name: 'members', data: this.getMembers() },
+      { name: 'programs', data: this.getPrograms() },
+      { name: 'call_assignments', data: this.getCallAssignments() },
+      { name: 'org_directory_entries', data: this.getOrgDirectoryEntries() }
+    ];
+
+    for (const table of tables) {
+      if (table.data.length > 0) {
+        const dbData = table.data.map(mapToSnake);
+        const { error } = await supabase.from(table.name).upsert(dbData);
+        if (error) {
+          console.error(`Failed to seed table ${table.name} in Supabase:`, error);
+        } else {
+          console.log(`Successfully seeded table ${table.name} with ${table.data.length} records.`);
+        }
+      }
+    }
+  }
+
+  private async downloadFromSupabase() {
+    if (!supabase) return;
+
+    const tables = [
+      { name: 'organizations', storageKey: 'organizations' },
+      { name: 'profiles', storageKey: 'profiles' },
+      { name: 'members', storageKey: 'members' },
+      { name: 'programs', storageKey: 'programs' },
+      { name: 'call_assignments', storageKey: 'call_assignments' },
+      { name: 'org_directory_entries', storageKey: 'org_directory_entries' }
+    ];
+
+    for (const table of tables) {
+      const { data, error } = await supabase.from(table.name).select('*');
+      if (error) {
+        console.error(`Failed to download table ${table.name} from Supabase:`, error);
+      } else if (data) {
+        const camelData = data.map(mapToCamel);
+        this.set(table.storageKey, camelData);
+        console.log(`Downloaded ${data.length} records for ${table.name} and cached locally.`);
+      }
+    }
+  }
+
+  private bgSync(action: () => Promise<any>) {
+    if (!supabase) return;
+    action().catch(err => {
+      console.error("Background sync error:", err);
+    });
+  }
+
   // Generic Helpers
   private get<T>(key: string): T[] {
     if (!this.isBrowser) return [];
@@ -354,6 +472,11 @@ class LocalDB {
       list.push(org);
     }
     this.set('organizations', list);
+
+    this.bgSync(async () => {
+      const { error } = await supabase!.from('organizations').upsert(mapToSnake(org));
+      if (error) throw error;
+    });
   }
 
   // Profiles / Users API
@@ -374,6 +497,11 @@ class LocalDB {
       list.push(profile);
     }
     this.set('profiles', list);
+
+    this.bgSync(async () => {
+      const { error } = await supabase!.from('profiles').upsert(mapToSnake(profile));
+      if (error) throw error;
+    });
   }
 
   // Members API
@@ -394,11 +522,21 @@ class LocalDB {
       list.push(member);
     }
     this.set('members', list);
+
+    this.bgSync(async () => {
+      const { error } = await supabase!.from('members').upsert(mapToSnake(member));
+      if (error) throw error;
+    });
   }
 
   deleteMember(id: string) {
     const list = this.getMembers();
     this.set('members', list.filter(m => m.id !== id));
+
+    this.bgSync(async () => {
+      const { error } = await supabase!.from('members').delete().eq('id', id);
+      if (error) throw error;
+    });
   }
 
   // Programs API
@@ -419,6 +557,11 @@ class LocalDB {
       list.push(prog);
     }
     this.set('programs', list);
+
+    this.bgSync(async () => {
+      const { error } = await supabase!.from('programs').upsert(mapToSnake(prog));
+      if (error) throw error;
+    });
   }
 
   deleteProgram(id: string) {
@@ -427,6 +570,11 @@ class LocalDB {
     // cascade delete call assignments
     const assignments = this.getCallAssignments();
     this.set('call_assignments', assignments.filter(a => a.programId !== id));
+
+    this.bgSync(async () => {
+      const { error } = await supabase!.from('programs').delete().eq('id', id);
+      if (error) throw error;
+    });
   }
 
   // Call Assignments API
@@ -449,6 +597,12 @@ class LocalDB {
       c => !assignments.some(a => a.programId === c.programId && a.memberId === c.memberId)
     );
     this.set('call_assignments', [...filtered, ...assignments]);
+
+    this.bgSync(async () => {
+      const dbAssignments = assignments.map(mapToSnake);
+      const { error } = await supabase!.from('call_assignments').upsert(dbAssignments);
+      if (error) throw error;
+    });
   }
 
   updateCallAssignmentStatus(assignmentId: string, status: CallAssignment['status'], notes?: string) {
@@ -460,12 +614,29 @@ class LocalDB {
         list[idx].notes = notes;
       }
       this.set('call_assignments', list);
+
+      this.bgSync(async () => {
+        const updateObj: any = { status };
+        if (notes !== undefined) {
+          updateObj.notes = notes;
+        }
+        const { error } = await supabase!
+          .from('call_assignments')
+          .update(mapToSnake(updateObj))
+          .eq('id', assignmentId);
+        if (error) throw error;
+      });
     }
   }
 
   clearAssignmentsByProgram(programId: string) {
     const current = this.getCallAssignments();
     this.set('call_assignments', current.filter(a => a.programId !== programId));
+
+    this.bgSync(async () => {
+      const { error } = await supabase!.from('call_assignments').delete().eq('program_id', programId);
+      if (error) throw error;
+    });
   }
 
   // Custom Public Directory API
@@ -482,12 +653,40 @@ class LocalDB {
       list.push(entry);
     }
     this.set('org_directory_entries', list);
+
+    this.bgSync(async () => {
+      const { error } = await supabase!.from('org_directory_entries').upsert(mapToSnake(entry));
+      if (error) throw error;
+    });
   }
 
   deleteOrgDirectoryEntry(id: string) {
     const list = this.getOrgDirectoryEntries();
     this.set('org_directory_entries', list.filter(e => e.id !== id));
+
+    this.bgSync(async () => {
+      const { error } = await supabase!.from('org_directory_entries').delete().eq('id', id);
+      if (error) throw error;
+    });
   }
 }
 
 export const db = new LocalDB();
+
+import { useState, useEffect } from 'react';
+
+export function useLocalDBSync() {
+  const [syncVersion, setSyncVersion] = useState(0);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleSync = () => {
+      setSyncVersion(v => v + 1);
+    };
+    window.addEventListener('localdb-sync-complete', handleSync);
+    return () => window.removeEventListener('localdb-sync-complete', handleSync);
+  }, []);
+
+  return syncVersion;
+}
+

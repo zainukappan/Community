@@ -4,12 +4,13 @@ import React, { useState, useEffect } from 'react';
 import AppShell from '@/components/AppShell';
 import { useAuth } from '@/context/AuthContext';
 import { useLocale } from '@/lib/locale';
-import { db, Program, Organization } from '@/lib/db';
+import { db, Program, Organization, useLocalDBSync } from '@/lib/db';
 import { Plus, Edit2, Trash2, Calendar, FileText, Save, X, ShieldAlert } from 'lucide-react';
 
 export default function ProgramManagement() {
   const { user } = useAuth();
   const { t } = useLocale();
+  const syncVersion = useLocalDBSync();
 
   const [programs, setPrograms] = useState<Program[]>([]);
   const [orgs, setOrgs] = useState<Organization[]>([]);
@@ -41,7 +42,7 @@ export default function ProgramManagement() {
 
   useEffect(() => {
     reloadData();
-  }, [user]);
+  }, [user, syncVersion]);
 
   if (!user) return null;
 

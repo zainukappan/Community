@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import AppShell from '@/components/AppShell';
 import { useAuth } from '@/context/AuthContext';
 import { useLocale } from '@/lib/locale';
-import { db, Member, Organization } from '@/lib/db';
+import { db, Member, Organization, useLocalDBSync } from '@/lib/db';
 import { 
   Plus, Search, Edit2, Trash2, Filter, 
   Download, Upload, Save, X, Phone, UserCheck, ShieldAlert, FileSpreadsheet, Users
@@ -13,6 +13,7 @@ import {
 export default function MemberManagement() {
   const { user } = useAuth();
   const { t } = useLocale();
+  const syncVersion = useLocalDBSync();
 
   const [members, setMembers] = useState<Member[]>([]);
   const [orgs, setOrgs] = useState<Organization[]>([]);
@@ -164,7 +165,7 @@ export default function MemberManagement() {
 
   useEffect(() => {
     reloadData();
-  }, [user]);
+  }, [user, syncVersion]);
 
   if (!user) return null;
 

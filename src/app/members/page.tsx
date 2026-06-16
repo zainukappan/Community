@@ -7,7 +7,7 @@ import { useLocale } from '@/lib/locale';
 import { db, Member, Organization } from '@/lib/db';
 import { 
   Plus, Search, Edit2, Trash2, Filter, 
-  Download, Upload, Save, X, Phone, UserCheck, ShieldAlert 
+  Download, Upload, Save, X, Phone, UserCheck, ShieldAlert, FileSpreadsheet 
 } from 'lucide-react';
 
 export default function MemberManagement() {
@@ -47,6 +47,11 @@ export default function MemberManagement() {
   // Import CSV text state
   const [csvText, setCsvText] = useState('');
   const [importError, setImportError] = useState('');
+
+  // Google Sheets import state
+  const [importTab, setImportTab] = useState<'csv' | 'sheet'>('csv');
+  const [googleSheetUrl, setGoogleSheetUrl] = useState('');
+  const [isFetchingSheet, setIsFetchingSheet] = useState(false);
 
   const reloadData = () => {
     if (!user) return;
@@ -188,14 +193,10 @@ export default function MemberManagement() {
     link.click();
   };
 
-  // Import CSV
-  const handleImportCSV = (e: React.FormEvent) => {
-    e.preventDefault();
-    setImportError('');
-    if (!csvText.trim()) return;
-
+  // Reusable CSV parser & database updater
+  const importCsvData = (text: string): boolean => {
     try {
-      const lines = csvText.split('\n');
+      const lines = text.split('\n');
       let addedCount = 0;
 
       lines.forEach((line, index) => {
@@ -238,9 +239,57 @@ export default function MemberManagement() {
       alert(`Successfully imported ${addedCount} members!`);
       setIsImportOpen(false);
       setCsvText('');
+      setGoogleSheetUrl('');
       reloadData();
+      return true;
     } catch (err) {
-      setImportError('Failed to parse CSV. Please ensure formatting matches: MemberID, Name, Mobile, WhatsApp, Address, Ward, AgeCategory, Occupation, BloodGroup, LocationStatus');
+      setImportError('Failed to parse CSV. Please ensure formatting matches exactly: MemberID, FullName, MobileNumber, WhatsAppNumber, Address, WardUnit, AgeCategory, Occupation, BloodGroup, LocationStatus');
+      return false;
+    }
+  };
+
+  const handleImportCSV = (e: React.FormEvent) => {
+    e.preventDefault();
+    setImportError('');
+    if (!csvText.trim()) return;
+    importCsvData(csvText);
+  };
+
+  const extractSpreadsheetId = (url: string) => {
+    const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+    return match ? match[1] : null;
+  };
+
+  const handleFetchGoogleSheet = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setImportError('');
+    if (!googleSheetUrl.trim()) return;
+
+    const sheetId = extractSpreadsheetId(googleSheetUrl);
+    if (!sheetId) {
+      setImportError('Invalid Google Sheet URL. Please ensure it is a valid sharing link.');
+      return;
+    }
+
+    const exportUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
+
+    try {
+      setIsFetchingSheet(true);
+      const res = await fetch(exportUrl);
+      if (!res.ok) {
+        throw new Error('Failed to retrieve sheet data');
+      }
+      const data = await res.text();
+      importCsvData(data);
+    } catch (err) {
+      console.error(err);
+      setImportError(
+        'Failed to fetch the Google Sheet. Please make sure:\n' +
+        '1. The Google Sheet sharing setting is set to "Anyone with the link can view".\n' +
+        '2. The URL is correct and public.'
+      );
+    } finally {
+      setIsFetchingSheet(false);
     }
   };
 
@@ -692,12 +741,12 @@ export default function MemberManagement() {
           </div>
         )}
 
-        {/* CSV Import Modal */}
+        {/* CSV / Google Sheets Import Modal */}
         {isImportOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-fadeIn">
             <div className="bg-white w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl border border-slate-200">
               <div className="bg-emerald-950 text-white p-5 flex justify-between items-center">
-                <h3 className="font-bold text-sm">Batch Import Members (CSV)</h3>
+                <h3 className="font-bold text-sm">Batch Import Members</h3>
                 <button 
                   onClick={() => setIsImportOpen(false)}
                   className="h-7 w-7 flex items-center justify-center rounded-full hover:bg-white/10 text-white"
@@ -706,54 +755,133 @@ export default function MemberManagement() {
                 </button>
               </div>
 
-              <form onSubmit={handleImportCSV} className="p-6 space-y-4 text-xs font-semibold text-slate-700">
+              {/* Tab Selector */}
+              <div className="flex border-b border-slate-200 text-xs font-bold text-slate-500">
+                <button
+                  type="button"
+                  onClick={() => { setImportTab('csv'); setImportError(''); }}
+                  className={`flex-1 py-3 text-center border-b-2 cursor-pointer transition-all ${
+                    importTab === 'csv'
+                      ? 'border-emerald-800 text-emerald-800 font-extrabold'
+                      : 'border-transparent hover:text-slate-700'
+                  }`}
+                >
+                  Paste CSV Text
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setImportTab('sheet'); setImportError(''); }}
+                  className={`flex-1 py-3 text-center border-b-2 cursor-pointer transition-all ${
+                    importTab === 'sheet'
+                      ? 'border-emerald-800 text-emerald-800 font-extrabold'
+                      : 'border-transparent hover:text-slate-700'
+                  }`}
+                >
+                  Sync Google Sheet
+                </button>
+              </div>
+
+              {/* Form Content */}
+              <div className="p-6 space-y-4 text-xs font-semibold text-slate-700">
                 {importError && (
-                  <div className="rounded-xl bg-red-50 p-3.5 text-red-650 border border-red-100 text-xs">
+                  <div className="rounded-xl bg-red-50 p-3.5 text-red-650 border border-red-100 text-xs whitespace-pre-line font-medium">
                     {importError}
                   </div>
                 )}
 
+                {/* Common Schema Guide */}
                 <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-150 text-[11px] text-emerald-800 space-y-1.5 font-normal leading-relaxed">
-                  <p className="font-bold text-emerald-900">Required CSV Columns:</p>
-                  <p className="font-mono text-[10px] bg-white/60 p-1.5 rounded border border-emerald-100">
+                  <p className="font-bold text-emerald-900">Required Columns Structure:</p>
+                  <p className="font-mono text-[10px] bg-white/60 p-1.5 rounded border border-emerald-100 select-all">
                     MemberID, FullName, MobileNumber, WhatsAppNumber, Address, WardUnit, AgeCategory, Occupation, BloodGroup, LocationStatus
                   </p>
                   <p className="text-[10px] text-slate-500">
-                    * Values for AgeCategory: <code className="bg-emerald-100 px-1 rounded text-emerald-900">child</code>, <code className="bg-emerald-100 px-1 rounded text-emerald-900">youth</code>, <code className="bg-emerald-100 px-1 rounded text-emerald-900">middle</code>, <code className="bg-emerald-100 px-1 rounded text-emerald-900">senior</code>.
+                    * Values for AgeCategory: <code className="bg-emerald-100 px-1 rounded text-emerald-900 font-bold">child</code>, <code className="bg-emerald-100 px-1 rounded text-emerald-900 font-bold">youth</code>, <code className="bg-emerald-100 px-1 rounded text-emerald-900 font-bold">middle</code>, <code className="bg-emerald-100 px-1 rounded text-emerald-900 font-bold">senior</code>.
                     <br />
-                    * Values for LocationStatus: <code className="bg-emerald-100 px-1 rounded text-emerald-900">local</code>, <code className="bg-emerald-100 px-1 rounded text-emerald-900">expatriate</code>, <code className="bg-emerald-100 px-1 rounded text-emerald-900">studying_outside</code>, <code className="bg-emerald-100 px-1 rounded text-emerald-900">working_outside</code>.
+                    * Values for LocationStatus: <code className="bg-emerald-100 px-1 rounded text-emerald-900 font-bold">local</code>, <code className="bg-emerald-100 px-1 rounded text-emerald-900 font-bold">expatriate</code>, <code className="bg-emerald-100 px-1 rounded text-emerald-900 font-bold">studying_outside</code>, <code className="bg-emerald-100 px-1 rounded text-emerald-900 font-bold">working_outside</code>.
                   </p>
                 </div>
 
-                <div>
-                  <label className="block text-slate-500 mb-1">Paste CSV Data</label>
-                  <textarea 
-                    value={csvText} 
-                    required
-                    onChange={(e) => setCsvText(e.target.value)}
-                    placeholder="KMJ-101,Ahammed Kabir,+91 9995551212,+91 9995551212,Valley Green,Ward 01,youth,Business,O+,expatriate"
-                    rows={8}
-                    className="w-full border border-slate-300 bg-slate-50 rounded-xl p-3 outline-none focus:border-emerald-700 focus:bg-white font-mono font-normal text-[11px]"
-                  />
-                </div>
+                {importTab === 'csv' ? (
+                  /* CSV Paste Form */
+                  <form onSubmit={handleImportCSV} className="space-y-4">
+                    <div>
+                      <label className="block text-slate-500 mb-1">Paste CSV Data</label>
+                      <textarea 
+                        value={csvText} 
+                        required
+                        onChange={(e) => setCsvText(e.target.value)}
+                        placeholder="KMJ-101,Ahammed Kabir,+91 9995551212,+91 9995551212,Valley Green,Ward 01,youth,Business,O+,expatriate"
+                        rows={6}
+                        className="w-full border border-slate-300 bg-slate-50 rounded-xl p-3 outline-none focus:border-emerald-700 focus:bg-white font-mono font-normal text-[11px]"
+                      />
+                    </div>
 
-                <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
-                  <button 
-                    type="button" 
-                    onClick={() => setIsImportOpen(false)}
-                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    type="submit" 
-                    className="px-4 py-2.5 bg-emerald-800 hover:bg-emerald-700 text-white rounded-xl flex items-center gap-1 cursor-pointer"
-                  >
-                    <Upload className="h-4 w-4" />
-                    <span>Import Rows</span>
-                  </button>
-                </div>
-              </form>
+                    <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
+                      <button 
+                        type="button" 
+                        onClick={() => setIsImportOpen(false)}
+                        className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        type="submit" 
+                        className="px-4 py-2.5 bg-emerald-800 hover:bg-emerald-700 text-white rounded-xl flex items-center gap-1 cursor-pointer"
+                      >
+                        <Upload className="h-4 w-4" />
+                        <span>Import Rows</span>
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  /* Google Sheets Sync Form */
+                  <form onSubmit={handleFetchGoogleSheet} className="space-y-4">
+                    <div className="bg-amber-50 text-amber-800 border border-amber-200 rounded-xl p-3 text-[10px] font-normal leading-normal">
+                      📢 <strong>Configuration Required:</strong> Open your Google Sheet, click the <strong>Share</strong> button, and set General Access to <strong>"Anyone with the link can view"</strong>. This permits our system to extract its content.
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-500 mb-1">Google Sheet Link / URL</label>
+                      <input 
+                        type="url" 
+                        required
+                        value={googleSheetUrl}
+                        onChange={(e) => setGoogleSheetUrl(e.target.value)}
+                        placeholder="https://docs.google.com/spreadsheets/d/.../edit?usp=sharing"
+                        className="w-full border border-slate-300 bg-slate-50 rounded-xl p-3 outline-none focus:border-emerald-700 focus:bg-white font-normal"
+                      />
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
+                      <button 
+                        type="button" 
+                        onClick={() => setIsImportOpen(false)}
+                        className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        type="submit" 
+                        disabled={isFetchingSheet}
+                        className="px-4 py-2.5 bg-emerald-800 hover:bg-emerald-700 disabled:bg-emerald-800/40 text-white rounded-xl flex items-center gap-1.5 cursor-pointer disabled:cursor-not-allowed transition-colors font-bold shadow-sm"
+                      >
+                        {isFetchingSheet ? (
+                          <>
+                            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent inline-block" />
+                            <span>Fetching Sheet...</span>
+                          </>
+                        ) : (
+                          <>
+                            <FileSpreadsheet className="h-4 w-4 text-amber-400" />
+                            <span>Sync & Import</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
             </div>
           </div>
         )}

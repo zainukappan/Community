@@ -227,7 +227,7 @@ export default function CallingPage() {
                     <div 
                       key={assignId}
                       className={`bg-white rounded-2xl p-5 border shadow-sm transition-all duration-200 flex flex-col justify-between ${
-                        task.status === 'confirmed' ? 'border-emerald-100 hover:border-emerald-250 shadow-emerald-50/20' :
+                        task.status === 'confirmed' ? 'border-emerald-100 hover:border-emerald-200 shadow-emerald-50/20' :
                         task.status === 'not_attending' ? 'border-red-100 hover:border-red-200' :
                         task.status === 'not_called' ? 'border-slate-200' : 'border-slate-250'
                       }`}
@@ -274,7 +274,7 @@ export default function CallingPage() {
 
                         {/* Call Feedback Status Dropdown Group */}
                         <div className="space-y-2 pt-2 border-t border-slate-100">
-                          <label className="block text-[10px] font-bold text-slate-450 uppercase tracking-wider">Update Call Status</label>
+                          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Update Call Status</label>
                           <div className="grid grid-cols-3 gap-1.5 text-[10px] font-bold text-slate-700">
                             {([
                               { s: 'confirmed', label: 'Confirmed' },
@@ -305,7 +305,7 @@ export default function CallingPage() {
 
                         {/* Notes input */}
                         <div className="space-y-1 pt-1">
-                          <label htmlFor={`notes-${assignId}`} className="block text-[10px] font-bold text-slate-450 uppercase tracking-wider">Call Notes</label>
+                          <label htmlFor={`notes-${assignId}`} className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Call Notes</label>
                           <div className="relative">
                             <input
                               id={`notes-${assignId}`}

@@ -224,9 +224,9 @@ export default function ProgramManagement() {
                 </button>
               </div>
 
-              <form onSubmit={handleSave} className="p-6 space-y-4 text-xs font-semibold text-slate-750">
+              <form onSubmit={handleSave} className="p-6 space-y-4 text-xs font-semibold text-slate-700">
                 <div>
-                  <label className="block text-slate-550 mb-1">Program Name</label>
+                  <label className="block text-slate-500 mb-1">Program Name</label>
                   <input 
                     type="text" 
                     required
@@ -238,7 +238,7 @@ export default function ProgramManagement() {
                 </div>
 
                 <div>
-                  <label className="block text-slate-550 mb-1">Description</label>
+                  <label className="block text-slate-500 mb-1">Description</label>
                   <textarea 
                     value={description} 
                     onChange={(e) => setDescription(e.target.value)}
@@ -250,7 +250,7 @@ export default function ProgramManagement() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-slate-550 mb-1">Event Date</label>
+                    <label className="block text-slate-500 mb-1">Event Date</label>
                     <input 
                       type="date" 
                       required
@@ -261,7 +261,7 @@ export default function ProgramManagement() {
                   </div>
 
                   <div>
-                    <label className="block text-slate-550 mb-1">Status</label>
+                    <label className="block text-slate-500 mb-1">Status</label>
                     <select
                       value={status}
                       onChange={(e) => setStatus(e.target.value as any)}
@@ -276,7 +276,7 @@ export default function ProgramManagement() {
 
                 {user.role === 'super_admin' && (
                   <div>
-                    <label className="block text-slate-550 mb-1">Organization Link</label>
+                    <label className="block text-slate-500 mb-1">Organization Link</label>
                     <select
                       value={programOrgId}
                       required

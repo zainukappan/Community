@@ -424,14 +424,14 @@ export default function CampaignsPage() {
                 <div key={d.caller.id} className="bg-slate-50 border border-slate-200/80 rounded-xl p-3 text-center">
                   <span className="text-[10px] font-bold text-slate-500 truncate block">{d.caller.fullName}</span>
                   <span className="text-xl font-extrabold text-emerald-800 block mt-1">{d.assignedMembers.length}</span>
-                  <span className="text-[9px] text-slate-450 uppercase font-medium">assigned</span>
+                  <span className="text-[9px] text-slate-400 uppercase font-medium">assigned</span>
                 </div>
               ))}
             </div>
 
             {/* Collapsible lists for adjustments */}
             <div className="space-y-2.5">
-              <h4 className="text-[10px] font-bold text-slate-450 uppercase tracking-wider pl-0.5">
+              <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider pl-0.5">
                 Manual Assignments List
               </h4>
 
@@ -465,8 +465,8 @@ export default function CampaignsPage() {
                               <div key={member.id} className="flex flex-col sm:flex-row sm:items-center justify-between py-2.5 px-2 gap-2 text-xs font-semibold">
                                 <div className="min-w-0">
                                   <span className="text-[9px] font-mono text-slate-400 font-bold block">{member.memberId}</span>
-                                  <span className="text-slate-850 block font-bold text-[12px]">{member.fullName}</span>
-                                  <span className="text-[9px] text-slate-450 font-medium block">🏡 {member.wardUnit || 'No Ward'} • Location: {t(member.locationStatus as any)}</span>
+                                  <span className="text-slate-800 block font-bold text-[12px]">{member.fullName}</span>
+                                  <span className="text-[9px] text-slate-400 font-medium block">🏡 {member.wardUnit || 'No Ward'} • Location: {t(member.locationStatus as any)}</span>
                                 </div>
 
                                 {/* Reassignment selector dropdown */}
@@ -475,7 +475,7 @@ export default function CampaignsPage() {
                                   <select
                                     value={d.caller.id}
                                     onChange={(e) => handleReassignMember(member.id, d.caller.id, e.target.value)}
-                                    className="bg-white border border-slate-355 rounded-lg px-2.5 py-1.5 outline-none font-normal text-[11px] font-medium text-slate-700"
+                                    className="bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 outline-none font-normal text-[11px] font-medium text-slate-700"
                                   >
                                     {distribution.map(item => (
                                       <option key={item.caller.id} value={item.caller.id}>

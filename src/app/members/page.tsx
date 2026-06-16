@@ -382,7 +382,7 @@ export default function MemberManagement() {
             <>
               {/* Desktop Table View */}
               <div className="hidden md:block overflow-x-auto">
-                <table className="min-w-full divide-y divide-slate-200 text-left text-[11px] font-semibold text-slate-650">
+                <table className="min-w-full divide-y divide-slate-200 text-left text-[11px] font-semibold text-slate-600">
                   <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider">
                     <tr>
                       <th className="px-6 py-4">ID</th>
@@ -460,7 +460,7 @@ export default function MemberManagement() {
                       </span>
                     </div>
 
-                    <div className="flex justify-between items-center text-[10px] bg-white p-2 rounded-lg border border-slate-100 font-medium text-slate-650">
+                    <div className="flex justify-between items-center text-[10px] bg-white p-2 rounded-lg border border-slate-100 font-medium text-slate-600">
                       <span>{t(member.locationStatus as any)} ({member.ageCategory})</span>
                       <span className="font-mono text-slate-500">📞 {member.mobileNumber}</span>
                     </div>
@@ -502,10 +502,10 @@ export default function MemberManagement() {
                 </button>
               </div>
 
-              <form onSubmit={handleSave} className="p-6 overflow-y-auto space-y-4 text-xs font-semibold text-slate-750 flex-1">
+              <form onSubmit={handleSave} className="p-6 overflow-y-auto space-y-4 text-xs font-semibold text-slate-700 flex-1">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-slate-550 mb-1">Member ID</label>
+                    <label className="block text-slate-500 mb-1">Member ID</label>
                     <input 
                       type="text" 
                       required
@@ -517,7 +517,7 @@ export default function MemberManagement() {
                   </div>
 
                   <div>
-                    <label className="block text-slate-550 mb-1">Full Name</label>
+                    <label className="block text-slate-500 mb-1">Full Name</label>
                     <input 
                       type="text" 
                       required
@@ -531,7 +531,7 @@ export default function MemberManagement() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-slate-550 mb-1">Mobile Number</label>
+                    <label className="block text-slate-500 mb-1">Mobile Number</label>
                     <input 
                       type="tel" 
                       required
@@ -543,7 +543,7 @@ export default function MemberManagement() {
                   </div>
 
                   <div>
-                    <label className="block text-slate-550 mb-1">WhatsApp Number</label>
+                    <label className="block text-slate-500 mb-1">WhatsApp Number</label>
                     <input 
                       type="tel" 
                       value={whatsappNumber} 
@@ -555,7 +555,7 @@ export default function MemberManagement() {
                 </div>
 
                 <div>
-                  <label className="block text-slate-550 mb-1">Address</label>
+                  <label className="block text-slate-500 mb-1">Address</label>
                   <textarea 
                     value={address} 
                     onChange={(e) => setAddress(e.target.value)}
@@ -567,7 +567,7 @@ export default function MemberManagement() {
 
                 <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-slate-550 mb-1">Ward / Unit</label>
+                    <label className="block text-slate-500 mb-1">Ward / Unit</label>
                     <input 
                       type="text" 
                       value={wardUnit} 
@@ -578,7 +578,7 @@ export default function MemberManagement() {
                   </div>
 
                   <div>
-                    <label className="block text-slate-550 mb-1">Blood Group</label>
+                    <label className="block text-slate-500 mb-1">Blood Group</label>
                     <select
                       value={bloodGroup}
                       onChange={(e) => setBloodGroup(e.target.value)}
@@ -597,7 +597,7 @@ export default function MemberManagement() {
                   </div>
 
                   <div>
-                    <label className="block text-slate-550 mb-1">Age Category</label>
+                    <label className="block text-slate-500 mb-1">Age Category</label>
                     <select
                       value={ageCategory}
                       onChange={(e) => setAgeCategory(e.target.value as any)}
@@ -613,7 +613,7 @@ export default function MemberManagement() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-slate-550 mb-1">Location Status</label>
+                    <label className="block text-slate-500 mb-1">Location Status</label>
                     <select
                       value={locationStatus}
                       onChange={(e) => setLocationStatus(e.target.value as any)}
@@ -627,7 +627,7 @@ export default function MemberManagement() {
                   </div>
 
                   <div>
-                    <label className="block text-slate-550 mb-1">Occupation</label>
+                    <label className="block text-slate-500 mb-1">Occupation</label>
                     <input 
                       type="text" 
                       value={occupation} 
@@ -641,7 +641,7 @@ export default function MemberManagement() {
                 <div className="grid grid-cols-2 gap-4">
                   {user.role === 'super_admin' ? (
                     <div>
-                      <label className="block text-slate-550 mb-1">Organization Link</label>
+                      <label className="block text-slate-500 mb-1">Organization Link</label>
                       <select
                         value={memberOrgId}
                         required
@@ -659,7 +659,7 @@ export default function MemberManagement() {
                   )}
 
                   <div>
-                    <label className="block text-slate-550 mb-1">Status</label>
+                    <label className="block text-slate-500 mb-1">Status</label>
                     <select
                       value={status}
                       onChange={(e) => setStatus(e.target.value as any)}
@@ -706,7 +706,7 @@ export default function MemberManagement() {
                 </button>
               </div>
 
-              <form onSubmit={handleImportCSV} className="p-6 space-y-4 text-xs font-semibold text-slate-750">
+              <form onSubmit={handleImportCSV} className="p-6 space-y-4 text-xs font-semibold text-slate-700">
                 {importError && (
                   <div className="rounded-xl bg-red-50 p-3.5 text-red-650 border border-red-100 text-xs">
                     {importError}
@@ -726,7 +726,7 @@ export default function MemberManagement() {
                 </div>
 
                 <div>
-                  <label className="block text-slate-550 mb-1">Paste CSV Data</label>
+                  <label className="block text-slate-500 mb-1">Paste CSV Data</label>
                   <textarea 
                     value={csvText} 
                     required

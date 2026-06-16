@@ -291,7 +291,7 @@ export default function PublicDirectory() {
                           <div className="flex gap-1">
                             <a
                               href={`tel:${exec.phone}`}
-                              className="h-8 w-8 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-250 flex items-center justify-center hover:bg-emerald-100 transition-colors"
+                              className="h-8 w-8 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center justify-center hover:bg-emerald-100 transition-colors"
                               title="Call"
                             >
                               <Phone className="h-4 w-4" />
@@ -300,7 +300,7 @@ export default function PublicDirectory() {
                               href={getWhatsAppLink(exec.phone)}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="h-8 w-8 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-250 flex items-center justify-center hover:bg-emerald-100 transition-colors"
+                              className="h-8 w-8 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center justify-center hover:bg-emerald-100 transition-colors"
                               title="WhatsApp"
                             >
                               💬

@@ -300,9 +300,9 @@ export default function OrganizationsManagement() {
                 </button>
               </div>
 
-              <form onSubmit={handleSaveOrg} className="p-6 space-y-4 text-xs font-semibold text-slate-750">
+              <form onSubmit={handleSaveOrg} className="p-6 space-y-4 text-xs font-semibold text-slate-700">
                 <div>
-                  <label className="block text-slate-550 mb-1">Organization Name</label>
+                  <label className="block text-slate-500 mb-1">Organization Name</label>
                   <input 
                     type="text" 
                     required
@@ -319,7 +319,7 @@ export default function OrganizationsManagement() {
                 </div>
 
                 <div>
-                  <label className="block text-slate-550 mb-1">Slug (Identifier)</label>
+                  <label className="block text-slate-500 mb-1">Slug (Identifier)</label>
                   <input 
                     type="text" 
                     required
@@ -331,7 +331,7 @@ export default function OrganizationsManagement() {
                 </div>
 
                 <div>
-                  <label className="block text-slate-550 mb-1">Description</label>
+                  <label className="block text-slate-500 mb-1">Description</label>
                   <textarea 
                     value={description} 
                     onChange={(e) => setDescription(e.target.value)}
@@ -343,7 +343,7 @@ export default function OrganizationsManagement() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-slate-550 mb-1">Theme Color</label>
+                    <label className="block text-slate-500 mb-1">Theme Color</label>
                     <div className="flex gap-2 items-center">
                       <input 
                         type="color" 
@@ -361,7 +361,7 @@ export default function OrganizationsManagement() {
                   </div>
 
                   <div>
-                    <label className="block text-slate-550 mb-1">Status</label>
+                    <label className="block text-slate-500 mb-1">Status</label>
                     <select
                       value={orgStatus}
                       onChange={(e) => setOrgStatus(e.target.value as any)}
@@ -408,9 +408,9 @@ export default function OrganizationsManagement() {
                 </button>
               </div>
 
-              <form onSubmit={handleSaveUser} className="p-6 space-y-4 text-xs font-semibold text-slate-750">
+              <form onSubmit={handleSaveUser} className="p-6 space-y-4 text-xs font-semibold text-slate-700">
                 <div>
-                  <label className="block text-slate-550 mb-1">Full Name</label>
+                  <label className="block text-slate-500 mb-1">Full Name</label>
                   <input 
                     type="text" 
                     required
@@ -422,7 +422,7 @@ export default function OrganizationsManagement() {
                 </div>
 
                 <div>
-                  <label className="block text-slate-550 mb-1">Email Address</label>
+                  <label className="block text-slate-500 mb-1">Email Address</label>
                   <input 
                     type="email" 
                     required
@@ -436,7 +436,7 @@ export default function OrganizationsManagement() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-slate-550 mb-1">Organization Link</label>
+                    <label className="block text-slate-500 mb-1">Organization Link</label>
                     <select
                       value={userOrgId}
                       required
@@ -451,7 +451,7 @@ export default function OrganizationsManagement() {
                   </div>
 
                   <div>
-                    <label className="block text-slate-550 mb-1">Assigned Role</label>
+                    <label className="block text-slate-500 mb-1">Assigned Role</label>
                     <select
                       value={userRole}
                       onChange={(e) => setUserRole(e.target.value as any)}
@@ -465,7 +465,7 @@ export default function OrganizationsManagement() {
                 </div>
 
                 <div>
-                  <label className="block text-slate-550 mb-1">Contact Phone</label>
+                  <label className="block text-slate-500 mb-1">Contact Phone</label>
                   <input 
                     type="text" 
                     value={userPhone} 

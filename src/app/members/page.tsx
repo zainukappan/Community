@@ -448,7 +448,11 @@ export default function MemberManagement() {
                   }`}
                 >
                   <span className={`w-2 h-2 rounded-full ${isSelected ? 'bg-amber-400' : ''}`} style={isSelected ? {} : { backgroundColor: org.themeColor }} />
-                  <span>{org.name}</span>
+                  <span>
+                    {org.name.includes('Kerala Muslim Jamaath') ? 'KMJ' :
+                     org.name.includes('SYS') ? 'SYS' :
+                     org.name.includes('SSF') ? 'SSF' : org.name}
+                  </span>
                   <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${
                     isSelected ? 'bg-emerald-950 text-emerald-100 font-bold' : 'bg-slate-100 text-slate-500'
                   }`}>

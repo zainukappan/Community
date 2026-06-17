@@ -318,7 +318,7 @@ export default function MemberManagement() {
         
         if (!fName || !mob) return;
 
-        const targetOrgId = user.role === 'super_admin' ? (parts[8] || orgs[0]?.id) : (user.orgId || '');
+        const targetOrgId = user.role === 'super_admin' ? (parts[8] || activeOrgTab || orgs[0]?.id) : (user.orgId || '');
 
         const newMem: Member = {
           id: `member-csv-${Date.now()}-${index}`,

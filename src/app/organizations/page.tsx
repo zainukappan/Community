@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import AppShell from '@/components/AppShell';
 import { useAuth } from '@/context/AuthContext';
-import { db, Organization, Profile } from '@/lib/db';
+import { db, Organization, Profile, Member } from '@/lib/db';
 import { Plus, Edit2, ShieldAlert, Key, Users, Settings, FolderOpen, Save, X } from 'lucide-react';
 
 export default function OrganizationsManagement() {
@@ -11,6 +11,8 @@ export default function OrganizationsManagement() {
   
   const [orgs, setOrgs] = useState<Organization[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [allMembers, setAllMembers] = useState<Member[]>([]);
+  const [selectedMemberId, setSelectedMemberId] = useState('');
   
   // Modal & Form States
   const [isOrgModalOpen, setIsOrgModalOpen] = useState(false);
@@ -35,6 +37,7 @@ export default function OrganizationsManagement() {
   const reloadData = () => {
     setOrgs(db.getOrganizations());
     setProfiles(db.getProfiles());
+    setAllMembers(db.getMembers());
   };
 
   useEffect(() => {
@@ -137,6 +140,7 @@ export default function OrganizationsManagement() {
     setUserRole('org_admin');
     setUserOrgId('');
     setUserPhone('');
+    setSelectedMemberId('');
   };
 
   return (
@@ -410,6 +414,47 @@ export default function OrganizationsManagement() {
 
               <form onSubmit={handleSaveUser} className="p-6 space-y-4 text-xs font-semibold text-slate-700">
                 <div>
+                  <label className="block text-slate-500 mb-1">Organization Link</label>
+                  <select
+                    value={userOrgId}
+                    required
+                    onChange={(e) => {
+                      setUserOrgId(e.target.value);
+                      setSelectedMemberId('');
+                    }}
+                    className="w-full border border-slate-300 bg-slate-50 rounded-xl p-3 outline-none focus:border-emerald-700 focus:bg-white font-normal"
+                  >
+                    <option value="">Select Org</option>
+                    {orgs.map(o => (
+                      <option key={o.id} value={o.id}>{o.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-500 mb-1">Select Member (Optional pre-fill)</label>
+                  <select
+                    value={selectedMemberId}
+                    disabled={!userOrgId}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setSelectedMemberId(val);
+                      const member = allMembers.find(m => m.id === val);
+                      if (member) {
+                        setUserFullName(member.fullName);
+                        setUserPhone(member.mobileNumber);
+                      }
+                    }}
+                    className="w-full border border-slate-300 bg-slate-50 rounded-xl p-3 outline-none focus:border-emerald-700 focus:bg-white disabled:bg-slate-100 disabled:text-slate-400 font-normal"
+                  >
+                    <option value="">-- Choose Member --</option>
+                    {allMembers.filter(m => m.orgId === userOrgId).map(m => (
+                      <option key={m.id} value={m.id}>{m.fullName} ({m.memberId})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
                   <label className="block text-slate-500 mb-1">Full Name</label>
                   <input 
                     type="text" 
@@ -434,34 +479,17 @@ export default function OrganizationsManagement() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-slate-500 mb-1">Organization Link</label>
-                    <select
-                      value={userOrgId}
-                      required
-                      onChange={(e) => setUserOrgId(e.target.value)}
-                      className="w-full border border-slate-300 bg-slate-50 rounded-xl p-3 outline-none focus:border-emerald-700 focus:bg-white font-normal"
-                    >
-                      <option value="">Select Org</option>
-                      {orgs.map(o => (
-                        <option key={o.id} value={o.id}>{o.name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-slate-500 mb-1">Assigned Role</label>
-                    <select
-                      value={userRole}
-                      onChange={(e) => setUserRole(e.target.value as any)}
-                      className="w-full border border-slate-300 bg-slate-50 rounded-xl p-3 outline-none focus:border-emerald-700 focus:bg-white font-normal"
-                    >
-                      <option value="org_admin">Organization Admin</option>
-                      <option value="office_bearer">Office Bearer (Caller)</option>
-                      <option value="executive">Executive Member (Caller)</option>
-                    </select>
-                  </div>
+                <div>
+                  <label className="block text-slate-500 mb-1">Assigned Role</label>
+                  <select
+                    value={userRole}
+                    onChange={(e) => setUserRole(e.target.value as any)}
+                    className="w-full border border-slate-300 bg-slate-50 rounded-xl p-3 outline-none focus:border-emerald-700 focus:bg-white font-normal"
+                  >
+                    <option value="org_admin">Organization Admin</option>
+                    <option value="office_bearer">Office Bearer (Caller)</option>
+                    <option value="executive">Executive Member (Caller)</option>
+                  </select>
                 </div>
 
                 <div>

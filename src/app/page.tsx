@@ -143,7 +143,7 @@ export default function PublicDirectory() {
       </header>
 
       {/* Main Container */}
-      <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-6 md:py-10">
+      <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-6 md:py-10">
         
         {!selectedOrgId ? (
           /* Landing Directory List */
@@ -165,31 +165,31 @@ export default function PublicDirectory() {
                 {t('selectOrg')}
               </h3>
 
-              <div className="grid gap-4 sm:grid-cols-1">
+              <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
                 {orgs.map((org) => {
                   return (
                     <div 
                       key={org.id}
                       onClick={() => setSelectedOrgId(org.id)}
-                      style={{ borderLeftColor: org.themeColor }}
-                      className="group bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 border-l-4 hover:shadow-md hover:border-slate-300 transition-all duration-200 cursor-pointer flex flex-col justify-between items-start gap-4 sm:flex-row sm:items-center"
+                      style={{ borderTopColor: org.themeColor }}
+                      className="group bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 border-t-4 hover:shadow-md hover:border-slate-350 transition-all duration-200 cursor-pointer flex flex-col justify-between gap-4 h-full"
                     >
-                      <div className="space-y-1.5 flex-1">
+                      <div className="space-y-2.5">
                         <div className="flex items-center gap-2">
                           <div 
-                            className="w-3 h-3 rounded-full" 
+                            className="w-3 h-3 rounded-full shrink-0" 
                             style={{ backgroundColor: org.themeColor }}
                           />
-                          <h4 className="font-bold text-lg text-slate-800 group-hover:text-emerald-800 transition-colors">
+                          <h4 className="font-bold text-base text-slate-800 group-hover:text-emerald-800 transition-colors leading-tight">
                             {org.name}
                           </h4>
                         </div>
-                        <p className="text-xs text-slate-500 font-normal leading-relaxed max-w-xl">
+                        <p className="text-xs text-slate-500 font-normal leading-relaxed line-clamp-3">
                           {org.description || 'No description provided.'}
                         </p>
                       </div>
 
-                      <div className="flex items-center gap-1 text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-3 py-2 rounded-xl transition-colors self-end sm:self-center">
+                      <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-50 group-hover:bg-emerald-100 py-2.5 px-4 rounded-xl transition-colors w-full mt-auto">
                         <span>View Directory</span>
                         <ArrowRight className="h-3.5 w-3.5" />
                       </div>

@@ -2,7 +2,7 @@
 
 -- 1. Organizations Table
 CREATE TABLE IF NOT EXISTS organizations (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     slug TEXT NOT NULL UNIQUE,
     logo_url TEXT,
@@ -14,11 +14,11 @@ CREATE TABLE IF NOT EXISTS organizations (
 
 -- 2. Profiles Table (Extends Supabase auth.users)
 CREATE TABLE IF NOT EXISTS profiles (
-    id UUID PRIMARY KEY, -- Should reference auth.users.id
+    id TEXT PRIMARY KEY,
     email TEXT NOT NULL UNIQUE,
     full_name TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'executive' CHECK (role IN ('super_admin', 'org_admin', 'office_bearer', 'executive')),
-    org_id UUID REFERENCES organizations(id) ON DELETE SET NULL,
+    org_id TEXT REFERENCES organizations(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -28,7 +28,7 @@ CREATE INDEX IF NOT EXISTS idx_profiles_role ON profiles(role);
 
 -- 3. Members Table
 CREATE TABLE IF NOT EXISTS members (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id TEXT PRIMARY KEY,
     member_id TEXT NOT NULL UNIQUE,
     full_name TEXT NOT NULL,
     father_name TEXT,
@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS members (
     whatsapp_number TEXT,
     occupation TEXT,
     blood_group TEXT,
-    org_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    org_id TEXT REFERENCES organizations(id) ON DELETE CASCADE,
     status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
     location_status TEXT DEFAULT 'local' CHECK (location_status IN ('local', 'expatriate', 'studying_outside', 'working_outside')),
     created_at TIMESTAMPTZ DEFAULT NOW()
@@ -51,11 +51,11 @@ CREATE INDEX IF NOT EXISTS idx_members_father_name ON members(father_name);
 
 -- 4. Programs Table
 CREATE TABLE IF NOT EXISTS programs (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     description TEXT,
     date DATE NOT NULL,
-    org_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+    org_id TEXT REFERENCES organizations(id) ON DELETE CASCADE,
     status TEXT DEFAULT 'upcoming' CHECK (status IN ('upcoming', 'active', 'completed')),
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -65,10 +65,10 @@ CREATE INDEX IF NOT EXISTS idx_programs_status ON programs(status);
 
 -- 5. Call Assignments Table (Random assignment campaigns)
 CREATE TABLE IF NOT EXISTS call_assignments (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    program_id UUID REFERENCES programs(id) ON DELETE CASCADE,
-    member_id UUID REFERENCES members(id) ON DELETE CASCADE,
-    caller_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    id TEXT PRIMARY KEY,
+    program_id TEXT REFERENCES programs(id) ON DELETE CASCADE,
+    member_id TEXT REFERENCES members(id) ON DELETE CASCADE,
+    caller_id TEXT REFERENCES profiles(id) ON DELETE CASCADE,
     status TEXT DEFAULT 'not_called' CHECK (status IN ('not_called', 'called', 'confirmed', 'not_attending', 'no_response', 'call_back_later')),
     notes TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -82,9 +82,9 @@ CREATE INDEX IF NOT EXISTS idx_assignments_status ON call_assignments(status);
 
 -- 6. Org Directory Entries Table (Custom Public Directory)
 CREATE TABLE IF NOT EXISTS org_directory_entries (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
-    member_id UUID REFERENCES members(id) ON DELETE CASCADE,
+    id TEXT PRIMARY KEY,
+    org_id TEXT REFERENCES organizations(id) ON DELETE CASCADE,
+    member_id TEXT REFERENCES members(id) ON DELETE CASCADE,
     responsibility TEXT NOT NULL,
     role_category TEXT CHECK (role_category IN ('office_bearer', 'executive')),
     created_at TIMESTAMPTZ DEFAULT NOW()
